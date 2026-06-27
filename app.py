@@ -43,15 +43,20 @@ log = logging.getLogger(__name__)
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
-DB_PORT = int(os.getenv("DB_PORT"))
+DB_PORT = int(os.getenv("DB_PORT", "3306"))
 DB_NAME = os.getenv("DB_NAME")
+DB_AVAILABLE = bool(DB_USER and DB_HOST and DB_NAME)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    "?charset=utf8mb4"
-)
+if DB_AVAILABLE:
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        "?charset=utf8mb4"
+    )
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///fallback.db"
+    print("⚠️  No DB_* env vars set — running with local SQLite fallback (no MySQL).", flush=True)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 1800,  # recycle connections every 30 min
@@ -2618,15 +2623,12 @@ def find_competitors():
 
 # ==================== INIT ====================
 with app.app_context():
-    db.create_all()
-    print("✓ MySQL tables initialized", flush=True)
-    # Quick connection test
     try:
+        db.create_all()
         db.session.execute(db.text("SELECT 1"))
-        print("✓ MySQL connection successful", flush=True)
+        print(f"✓ Database ready ({'MySQL' if DB_AVAILABLE else 'SQLite fallback'})", flush=True)
     except Exception as e:
-        print(f"✗ MySQL connection FAILED: {e}", flush=True)
-        print("  Check DB_USER, DB_PASSWORD, DB_HOST, DB_NAME above", flush=True)
+        print(f"✗ Database init FAILED: {e}", flush=True)
 
 
 if __name__ == "__main__":
