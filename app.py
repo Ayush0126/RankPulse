@@ -58,15 +58,16 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///fallback.db"
     print("⚠️  No DB_* env vars set — running with local SQLite fallback (no MySQL).", flush=True)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 1800,  # recycle connections every 30 min
-    "pool_pre_ping": True,  # test connection health before using
-    "pool_size": 10,  # connection pool size
-    "max_overflow": 20,  # extra connections above pool_size
-    "connect_args": {
-        "connect_timeout": 10,
-    },
-}
+if DB_AVAILABLE:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 1800,  # recycle connections every 30 min
+        "pool_pre_ping": True,  # test connection health before using
+        "pool_size": 10,  # connection pool size
+        "max_overflow": 20,  # extra connections above pool_size
+        "connect_args": {
+            "connect_timeout": 10,
+        },
+    }
 
 db = SQLAlchemy(app)
 
