@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RankPulse Website Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* ── Theme Variables ── */
+        :root,[data-theme="light"]{
+            --bg:       #f9fafb; --surface:   #ffffff; --surface2:  #f3f4f6;
+            --text:     #1f2937; --text2:     #4b5563; --muted:     #9ca3af;
+            --border:   #e5e7eb; --input-bg:  #f9fafb; --input-bd:  #d1d5db;
+            --ai-bg:    #eff6ff; --ai-bd:     #bfdbfe; --ai-text:   #1e40af;
+        }
+        [data-theme="dark"]{
+            --bg:       #0f1117; --surface:   #1a1d27; --surface2:  #22263a;
+            --text:     #f1f5f9; --text2:     #94a3b8; --muted:     #64748b;
+            --border:   #2d3748; --input-bg:  #22263a; --input-bd:  #374151;
+            --ai-bg:    #1e1b4b; --ai-bd:     #3730a3; --ai-text:   #a5b4fc;
+        }
+        body { background: var(--bg); color: var(--text); }
+
+        [data-theme="dark"] .tw-surface  { background-color: var(--surface)  !important; }
+        [data-theme="dark"] .tw-surface2 { background-color: var(--surface2) !important; }
+        [data-theme="dark"] .bg-white    { background-color: var(--surface)  !important; }
+        [data-theme="dark"] .bg-gray-50  { background-color: var(--bg)       !important; }
+        [data-theme="dark"] .bg-gray-100 { background-color: var(--surface2) !important; }
+        [data-theme="dark"] .bg-blue-50  { background-color: var(--ai-bg)    !important; }
+        [data-theme="dark"] .border-blue-200 { border-color: var(--ai-bd)    !important; }
+        [data-theme="dark"] .text-blue-800   { color: var(--ai-text)         !important; }
+        [data-theme="dark"] .text-gray-800   { color: var(--text)            !important; }
+        [data-theme="dark"] .text-gray-700   { color: var(--text2)           !important; }
+        [data-theme="dark"] .text-gray-600   { color: var(--text2)           !important; }
+        [data-theme="dark"] .text-gray-500   { color: var(--muted)           !important; }
+        [data-theme="dark"] .text-gray-400   { color: var(--muted)           !important; }
+        [data-theme="dark"] .border-gray-300 { border-color: var(--border)   !important; }
+        [data-theme="dark"] .border-gray-200 { border-color: var(--border)   !important; }
+        [data-theme="dark"] .border-b        { border-color: var(--border)   !important; }
+        [data-theme="dark"] .shadow-sm       { box-shadow: 0 1px 4px rgba(0,0,0,.5)  !important; }
+        [data-theme="dark"] .shadow-md       { box-shadow: 0 4px 14px rgba(0,0,0,.5) !important; }
+        [data-theme="dark"] .shadow          { box-shadow: 0 2px 8px rgba(0,0,0,.4)  !important; }
+        [data-theme="dark"] input,[data-theme="dark"] select {
+            background-color: var(--input-bg) !important;
+            border-color:     var(--input-bd) !important;
+            color:            var(--text)     !important;
+        }
+        [data-theme="dark"] input::placeholder { color: var(--muted) !important; }
+        [data-theme="dark"] .bg-emerald-100   { background-color: #052e16 !important; }
+        [data-theme="dark"] .bg-blue-950,
+        [data-theme="dark"] .bg-indigo-950    { background-color: var(--ai-bg) !important; }
+
+        .theme-btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 5px 13px; border-radius: 999px;
+            border: 1.5px solid var(--border);
+            background: var(--surface); color: var(--text2);
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            transition: all .2s; white-space: nowrap; line-height: 1;
+        }
+        .theme-btn:hover { border-color: #667eea; color: #667eea; }
+        .theme-btn .track {
+            width: 30px; height: 16px; border-radius: 8px;
+            background: #e5e7eb; position: relative; transition: background .2s;
+        }
+        [data-theme="dark"] .theme-btn .track { background: #4f46e5; }
+        .theme-btn .thumb {
+            position: absolute; top: 2px; left: 2px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+            transition: transform .2s;
+        }
+        [data-theme="dark"] .theme-btn .thumb { transform: translateX(14px); }
+
+        .radar-box { position: relative; height: 340px; width: 100%; padding: 8px 4px 4px; }
+        
+        .rank-pos  { display:inline-flex;align-items:center;justify-content:center;
+                     width:42px;height:42px;border-radius:10px;font-weight:800;font-size:15px; }
+        .rank-1-3  { background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff; }
+        .rank-4-10 { background:linear-gradient(135deg,#10b981,#059669);color:#fff; }
+        .rank-11-30{ background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff; }
+        .rank-31p  { background:rgba(100,116,139,.2);color:#64748b; }
+        .rank-none { background:rgba(239,68,68,.12);color:#ef4444;font-size:11px; }
+
+        .vis-ring {
+            width:120px;height:120px;border-radius:50%;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            background:conic-gradient(#10b981 var(--pct,0%), rgba(255,255,255,.08) 0%);
+            box-shadow:0 0 0 8px rgba(16,185,129,.08);
+            position:relative;
+        }
+        .vis-ring::after {
+            content:'';position:absolute;inset:10px;border-radius:50%;
+            background:var(--surface,#1a1d27);
+        }
+        .vis-ring .vis-val  { position:relative;z-index:1;font-size:28px;font-weight:800;color:#10b981;line-height:1; }
+        .vis-ring .vis-lbl  { position:relative;z-index:1;font-size:9px;color:var(--muted,#64748b);text-transform:uppercase;letter-spacing:.05em;margin-top:2px; }
+
+        .kw-tag {
+            display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;
+            border-radius:999px;background:rgba(255,255,255,.06);
+            border:1px solid rgba(255,255,255,.1);font-size:12px;
+            color:var(--text2,#94a3b8);
+        }
+        [data-theme="light"] .kw-tag { background:#f1f5f9;border-color:#e2e8f0;color:#475569; }
+        .kw-tag button { background:none;border:none;cursor:pointer;color:inherit;opacity:.6;line-height:1;padding:0;font-size:14px; }
+        .kw-tag button:hover { opacity:1;color:#ef4444; }
+
+        .kw-input-wrap {
+            display:flex;align-items:center;gap:8px;
+            padding:8px 14px;border-radius:12px;
+            border:1.5px solid var(--input-bd,rgba(255,255,255,.12));
+            background:var(--input-bg,rgba(255,255,255,.06));
+        }
+        .kw-input-wrap input {
+            flex:1;border:none;background:transparent;color:var(--text,#f1f5f9);
+            font-size:13px;outline:none;min-width:120px;
+        }
+        .kw-input-wrap input::placeholder { color:var(--muted,#64748b); }
+
+        .trend-up   { color:#10b981; }
+        .trend-down { color:#ef4444; }
+        .trend-same { color:#64748b; }
+
+        .rank-paywall {
+            position:absolute;inset:0;border-radius:20px;
+            background:rgba(15,17,23,.85);backdrop-filter:blur(6px);
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            z-index:10;gap:12px;
+        }
+
+        /* ── Browser Mockup Styles ── */
+        .browser-mockup {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+            background: #1e2030;
+            width: 100%;
+            position: relative;
+        }
+        [data-theme="light"] .browser-mockup {
+            background: #f0f0f0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08);
+        }
+        .browser-titlebar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #2a2d3e;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        [data-theme="light"] .browser-titlebar {
+            background: #e0e0e0;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        .browser-dots { display: flex; gap: 6px; }
+        .browser-dot {
+            width: 11px; height: 11px; border-radius: 50%;
+        }
+        .dot-red    { background: #ff5f57; }
+        .dot-yellow { background: #febc2e; }
+        .dot-green  { background: #28c840; }
+        .browser-bar {
+            flex: 1;
+            background: rgba(255,255,255,0.08);
+            border-radius: 6px;
+            padding: 4px 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            max-width: 320px;
+            margin: 0 auto;
+        }
+        [data-theme="light"] .browser-bar {
+            background: rgba(0,0,0,0.08);
+            color: rgba(0,0,0,0.5);
+        }
+        .browser-lock { font-size: 10px; opacity: 0.7; }
+        .browser-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .browser-open-btn {
+            font-size: 11px;
+            color: #60a5fa;
+            text-decoration: none;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(96,165,250,0.1);
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+        .browser-open-btn:hover { background: rgba(96,165,250,0.2); }
+        .browser-screenshot-area {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+            background: #13151f;
+        }
+        [data-theme="light"] .browser-screenshot-area {
+            background: #e8e8e8;
+        }
+        .browser-screenshot-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+            display: block;
+            transition: opacity 0.3s;
+        }
+        .browser-screenshot-area .screenshot-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+        }
+        [data-theme="light"] .browser-screenshot-area .screenshot-loading {
+            color: rgba(0,0,0,0.35);
+        }
+        .screenshot-spinner {
+            width: 28px; height: 28px;
+            border: 2.5px solid rgba(16,185,129,0.2);
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .browser-screenshot-area .screenshot-error {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+            text-align: center;
+            padding: 16px;
+        }
+        .screenshot-error-icon { font-size: 32px; opacity: 0.5; }
+        .score-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .score-ring-outer {
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 0 0 6px rgba(102,126,234,0.15), 0 8px 32px rgba(102,126,234,0.35);
+            position: relative;
+        }
+        .score-ring-inner {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: var(--surface, #1a1d27);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        /* ── Rankings Dark Panel — JetBrains Mono font ── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+.rk-shell {
+--rk-bg:       #0a0d12;
+--rk-surface:  #111520;
+--rk-surface2: #171c2a;
+--rk-border:   #1e2535;
+--rk-border2:  #252d40;
+--rk-text:     #e2e8f4;
+--rk-muted:    #5a6480;
+--rk-dim:      #3a4260;
+--rk-green:    #00e5a0; --rk-green-dim:  #00e5a015;
+--rk-yellow:   #f5c842; --rk-yellow-dim: #f5c84215;
+--rk-orange:   #ff7b3a; --rk-orange-dim: #ff7b3a15;
+--rk-red:      #ff4567; --rk-red-dim:    #ff456715;
+--rk-blue:     #4d9fff; --rk-blue-dim:   #4d9fff15;
+--rk-gold:     #ffd700; --rk-gold-dim:   #ffd70020;
+--rk-purple:   #a78bfa; --rk-purple-dim: #a78bfa15;
+background: var(--rk-bg);
+color: var(--rk-text);
+font-family: 'JetBrains Mono', monospace;
+border-radius: 20px;
+padding: 28px;
+margin-top: 24px;
+}
+/* Page header */
+.rk-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.rk-domain { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:var(--rk-text); letter-spacing:-0.5px; }
+.rk-domain span { color:var(--rk-blue); }
+.rk-live-badge {
+display:flex; align-items:center; gap:7px;
+background:var(--rk-green-dim); border:1px solid var(--rk-green);
+color:var(--rk-green); font-size:11px; font-weight:600;
+padding:5px 12px; border-radius:20px; letter-spacing:0.5px;
+}
+.rk-live-dot { width:7px; height:7px; border-radius:50%; background:var(--rk-green); animation:rkpulse 1.6s ease-in-out infinite; }
+@keyframes rkpulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+.rk-est-badge {
+display:flex; align-items:center; gap:7px;
+background:var(--rk-yellow-dim); border:1px solid var(--rk-yellow);
+color:var(--rk-yellow); font-size:11px; font-weight:600;
+padding:5px 12px; border-radius:20px; letter-spacing:0.5px;
+}
+/* Section headers */
+.rk-section { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.rk-section-title { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--rk-muted); }
+.rk-section-line { flex:1; height:1px; background:var(--rk-border); }
+/* Metrics grid */
+.rk-metrics { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+@media(max-width:900px){.rk-metrics{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.rk-metrics{grid-template-columns:repeat(2,1fr)}}
+.rk-mcard {
+background:var(--rk-surface); border:1px solid var(--rk-border);
+border-radius:12px; padding:16px 14px; position:relative; overflow:hidden;
+transition:border-color .2s,transform .2s;
+}
+.rk-mcard:hover { border-color:var(--rk-border2); transform:translateY(-2px); }
+.rk-mcard::before {
+content:''; position:absolute; inset:0;
+background:radial-gradient(ellipse at top left, var(--rk-accent,#4d9fff10) 0%,transparent 70%);
+pointer-events:none;
+}
+.rk-mlabel { font-size:9px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:var(--rk-muted); margin-bottom:8px; }
+.rk-mval   { font-size:28px; font-weight:800; line-height:1; letter-spacing:-1px; }
+.rk-msub   { font-size:10px; color:var(--rk-muted); margin-top:5px; }
+/* Dial */
+.rk-dial { position:relative; width:72px; height:72px; margin:0 auto 6px; }
+.rk-dial svg { transform:rotate(-90deg); }
+.rk-dial-bg   { fill:none; stroke:var(--rk-border2); stroke-width:6; }
+.rk-dial-fill { fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+.rk-dial-txt  { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; letter-spacing:-1px; }
+/* Alert */
+.rk-alert { border-radius:10px; padding:12px 16px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px; margin-bottom:20px; border:1px solid; }
+.rk-alert-red    { background:var(--rk-red-dim);    border-color:var(--rk-red);    color:var(--rk-red); }
+.rk-alert-yellow { background:var(--rk-yellow-dim); border-color:var(--rk-yellow); color:var(--rk-yellow); }
+.rk-alert-green  { background:var(--rk-green-dim);  border-color:var(--rk-green);  color:var(--rk-green); }
+.rk-alert-dot { width:8px; height:8px; border-radius:50%; background:currentColor; flex-shrink:0; }
+/* Table */
+.rk-table-wrap { background:var(--rk-surface); border:1px solid var(--rk-border); border-radius:14px; overflow:hidden; margin-bottom:20px; }
+.rk-table { width:100%; border-collapse:collapse; font-size:13px; }
+.rk-table thead tr { background:var(--rk-surface2); border-bottom:1px solid var(--rk-border2); }
+.rk-table th { padding:11px 14px; text-align:left; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--rk-muted); white-space:nowrap; }
+.rk-table tbody tr { border-bottom:1px solid var(--rk-border); transition:background .15s; }
+.rk-table tbody tr:last-child { border-bottom:none; }
+.rk-table tbody tr:hover { background:var(--rk-surface2); }
+.rk-table td { padding:13px 14px; vertical-align:middle; }
+/* Rank badge */
+.rk-rbadge { display:inline-flex; align-items:center; justify-content:center; min-width:42px; height:27px; padding:0 9px; border-radius:6px; font-size:12px; font-weight:700; border:1px solid; }
+.rk-top3   { background:var(--rk-green-dim);  border-color:var(--rk-green);  color:var(--rk-green); }
+.rk-top10  { background:var(--rk-yellow-dim); border-color:var(--rk-yellow); color:var(--rk-yellow); }
+.rk-top30  { background:var(--rk-orange-dim); border-color:var(--rk-orange); color:var(--rk-orange); }
+.rk-none   { background:var(--rk-red-dim);    border-color:var(--rk-red);    color:var(--rk-red);   font-size:9px; letter-spacing:0.5px; min-width:72px; }
+/* Local badge /
+.rk-local { display:inline-flex; align-items:center; gap:4px; background:var(--rk-blue-dim); border:1px solid var(--rk-blue); color:var(--rk-blue); font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px; }
+/ Featured badge /
+.rk-feat  { display:inline-flex; align-items:center; gap:4px; background:var(--rk-gold-dim); border:1px solid var(--rk-gold); color:var(--rk-gold); font-size:9px; font-weight:700; padding:3px 8px; border-radius:5px; letter-spacing:0.5px; }
+/ Source badge */
+.rk-src { font-size:9px; font-weight:600; padding:3px 8px; border-radius:4px; letter-spacing:0.5px; text-transform:uppercase; border:1px solid; }
+.rk-src-serp { background:var(--rk-green-dim); border-color:var(--rk-green); color:var(--rk-green); }
+.rk-src-est  { background:var(--rk-border2);   border-color:var(--rk-dim);   color:var(--rk-muted); }
+.rk-src-cse  { background:var(--rk-blue-dim);  border-color:var(--rk-blue);  color:var(--rk-blue); }
+.rk-ml-badge { font-size:9px; font-weight:700; padding:2px 7px; background:var(--rk-purple-dim); border:1px solid var(--rk-purple); color:var(--rk-purple); border-radius:4px; letter-spacing:0.5px; }
+/* Keyword cell */
+.rk-kw { font-weight:600; color:var(--rk-text); font-size:13px; }
+.rk-tags { display:flex; gap:4px; margin-top:3px; flex-wrap:wrap; }
+.rk-tag  { font-size:9px; font-weight:600; padding:2px 6px; border-radius:3px; letter-spacing:0.5px; text-transform:uppercase; }
+.rk-tag-local  { background:var(--rk-purple-dim); color:var(--rk-purple); border:1px solid var(--rk-purple); }
+.rk-tag-mobile { background:var(--rk-border2); color:var(--rk-muted); border:1px solid var(--rk-dim); }
+/* URL */
+.rk-url { font-size:11px; color:var(--rk-blue); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; display:block; text-decoration:none; }
+.rk-url:hover { text-decoration:underline; }
+.rk-nourl { color:var(--rk-dim); font-size:11px; }
+/* CTR bar */
+.rk-ctr-val { font-size:13px; font-weight:700; }
+.rk-ctr-bar { width:60px; height:3px; background:var(--rk-border2); border-radius:2px; overflow:hidden; margin-top:4px; }
+.rk-ctr-fill { height:100%; border-radius:2px; transition:width .6s ease; }
+/* Roadmap */
+.rk-roadmap { background:var(--rk-surface); border:1px solid var(--rk-border); border-radius:14px; padding:18px; }
+.rk-road-item { display:flex; align-items:flex-start; gap:12px; padding:11px 13px; background:var(--rk-surface2); border:1px solid var(--rk-border); border-radius:8px; transition:border-color .2s; margin-bottom:10px; }
+.rk-road-item:last-child { margin-bottom:0; }
+.rk-road-item:hover { border-color:var(--rk-border2); }
+.rk-road-icon { font-size:15px; flex-shrink:0; margin-top:1px; }
+.rk-road-body { flex:1; }
+.rk-road-label { font-weight:700; font-size:13px; color:var(--rk-text); margin-bottom:2px; }
+.rk-road-desc  { font-size:11px; color:var(--rk-muted); line-height:1.5; }
+.rk-impact { font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; align-self:flex-start; flex-shrink:0; margin-top:2px; border:1px solid; }
+.rk-impact-high   { background:var(--rk-red-dim);    color:var(--rk-red);    border-color:var(--rk-red); }
+.rk-impact-medium { background:var(--rk-yellow-dim); color:var(--rk-yellow); border-color:var(--rk-yellow); }
+.rk-impact-low    { background:var(--rk-green-dim);  color:var(--rk-green);  border-color:var(--rk-green); }
+/* ML row */
+.rk-ml-row td { background:linear-gradient(90deg,var(--rk-purple-dim),transparent); border-left:2px solid var(--rk-purple); }
+/* Empty state */
+.rk-empty { padding:48px 24px; text-align:center; color:var(--rk-muted); }
+.rk-empty .rk-empty-icon { font-size:36px; margin-bottom:12px; opacity:0.5; }
+.rk-empty p { font-size:13px; }
+@media(max-width:768px){ .rk-hide-sm { display:none !important; } }
+/* ── Configure Rank Check — enhanced panel ── */
+.rc-panel {
+    border-radius: 20px;
+    padding: 28px 30px;
+    position: relative;
+    overflow: hidden;
+}
+.rc-panel::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top right, rgba(102,126,234,0.06) 0%, transparent 60%);
+    pointer-events: none;
+}
+[data-theme="dark"] .rc-panel::before {
+    background: radial-gradient(ellipse at top right, rgba(102,126,234,0.12) 0%, transparent 60%);
+}
+.rc-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.rc-head-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(102,126,234,0.35);
+}
+.rc-head-title { font-size: 18px; font-weight: 800; line-height: 1.2; }
+.rc-head-sub   { font-size: 12px; margin-top: 1px; }
+
+.rc-field-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 8px; color: var(--rc-label, #6b7280);
+}
+[data-theme="dark"] .rc-field-label { color: #8b95ab; }
+.rc-field-label .rc-count { font-weight: 600; text-transform: none; letter-spacing: 0; opacity: .7; }
+
+.rc-input, .rc-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--rc-bd, #e5e7eb);
+    background: var(--rc-input-bg, #fff);
+    font-size: 14px;
+    color: var(--text, #1f2937);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    outline: none;
+}
+[data-theme="dark"] .rc-input, [data-theme="dark"] .rc-select {
+    --rc-bd: #2d3344; --rc-input-bg: #161a26;
+}
+.rc-input::placeholder { color: #9ca3af; }
+.rc-input:focus, .rc-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102,126,234,0.12);
+}
+.rc-input:hover, .rc-select:hover { border-color: #a5b4fc; }
+
+.rc-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+@media (max-width: 700px) { .rc-grid3 { grid-template-columns: 1fr; } }
+
+.rc-kw-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 6px 6px 16px;
+    border-radius: 14px;
+    border: 1.5px solid var(--rc-bd, #e5e7eb);
+    background: var(--rc-input-bg, #fff);
+    transition: border-color .15s, box-shadow .15s;
+    margin-bottom: 12px;
+}
+[data-theme="dark"] .rc-kw-row { --rc-bd: #2d3344; --rc-input-bg: #161a26; }
+.rc-kw-row:focus-within { border-color: #667eea; box-shadow: 0 0 0 4px rgba(102,126,234,0.12); }
+.rc-kw-row input {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-size: 14px; color: var(--text, #1f2937); padding: 8px 0;
+}
+.rc-kw-row input::placeholder { color: #9ca3af; }
+
+.rc-add-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff; font-size: 12.5px; font-weight: 700;
+    padding: 9px 16px; border-radius: 10px; border: none; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(16,185,129,0.3);
+    transition: transform .15s, box-shadow .15s, opacity .15s;
+    flex-shrink: 0;
+}
+.rc-add-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16,185,129,0.4); }
+.rc-add-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+.rc-kw-tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 8px 6px 14px; border-radius: 999px;
+    background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+    border: 1px solid rgba(102,126,234,0.25);
+    font-size: 12.5px; font-weight: 600;
+    color: #667eea;
+}
+[data-theme="dark"] .rc-kw-tag { color: #a5b4fc; border-color: rgba(165,180,252,0.25); }
+.rc-kw-tag button {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(102,126,234,0.15); border: none; cursor: pointer;
+    color: inherit; font-size: 13px; line-height: 1; padding: 0;
+    transition: background .15s, color .15s;
+}
+.rc-kw-tag button:hover { background: #ef4444; color: #fff; }
+
+.rc-empty-kw {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-style: italic; color: var(--muted, #9ca3af);
+    padding: 4px 2px;
+}
+
+.rc-submit {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    background: linear-gradient(135deg, #667eea 0%, #5a67d8 50%, #764ba2 100%);
+    color: #fff; font-weight: 800; font-size: 14.5px; letter-spacing: .3px;
+    padding: 15px; border-radius: 14px; border: none; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+    transition: transform .15s, box-shadow .15s, opacity .15s;
+    margin-top: 4px;
+}
+.rc-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 26px rgba(102,126,234,0.5); }
+.rc-submit:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; transform: none; }
+
+/* ── Home tab: scroll-reactive parallax background ── */
+.home-bg-wrap {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.home-blob-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.home-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    will-change: transform;
+    transition: transform 0.05s linear; /* smooths out scroll-tick jitter */
+}
+[data-theme="dark"] .home-blob { opacity: 0.22; }
+
+.home-blob.b1 {
+    width: 520px; height: 520px;
+    background: radial-gradient(circle, #667eea, transparent 70%);
+    top: -10%; left: -8%;
+}
+.home-blob.b2 {
+    width: 460px; height: 460px;
+    background: radial-gradient(circle, #10b981, transparent 70%);
+    top: 5%; right: -10%;
+}
+.home-blob.b3 {
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, #764ba2, transparent 70%);
+    top: 55%; left: 20%;
+}
+.home-blob.b4 {
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, #f59e0b, transparent 70%);
+    top: 38%; right: 12%;
+}
+.home-blob.b5 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, #3b82f6, transparent 70%);
+    top: 80%; left: 50%;
+}
+.home-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Stats bar ── */
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--border, #e5e7eb);
+}
+[data-theme="dark"] .stats-bar { border-color: #2d3344; }
+@media (max-width: 768px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
+.stat-cell {
+    background: var(--surface, #fff);
+    padding: 26px 20px;
+    text-align: center;
+}
+[data-theme="dark"] .stat-cell { background: #161a26; }
+.stat-num {
+    font-size: 32px; font-weight: 800;
+    background: linear-gradient(135deg, #667eea, #10b981);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    line-height: 1;
+}
+.stat-label {
+    font-size: 12px; font-weight: 600; letter-spacing: .4px;
+    text-transform: uppercase; margin-top: 6px;
+}
+
+/* ── FAQ accordion ── */
+.faq-item {
+    border-radius: 14px;
+    border: 1px solid var(--border, #e5e7eb);
+    overflow: hidden;
+    margin-bottom: 12px;
+    transition: border-color .15s;
+}
+[data-theme="dark"] .faq-item { border-color: #2d3344; }
+.faq-item.open { border-color: #667eea; }
+.faq-q {
+    width: 100%; text-align: left;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 18px 20px;
+    background: var(--surface, #fff);
+    border: none; cursor: pointer;
+    font-size: 15px; font-weight: 700;
+}
+[data-theme="dark"] .faq-q { background: #161a26; }
+.faq-chevron {
+    width: 22px; height: 22px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: rgba(102,126,234,0.12);
+    color: #667eea;
+    transition: transform .25s;
+}
+.faq-item.open .faq-chevron { transform: rotate(180deg); }
+.faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .25s ease;
+    background: var(--surface, #fff);
+}
+[data-theme="dark"] .faq-a { background: #161a26; }
+.faq-a-inner { padding: 0 20px 18px; font-size: 13.5px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ── Theme helpers ── */
+function savedTheme() {
+    try { return localStorage.getItem('zh-theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'); }
+    catch { return 'light'; }
+}
+function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('zh-theme', t); } catch {}
+}
+
+function ThemeToggle({ dark, onToggle }) {
+    return (
+        <button className="theme-btn" onClick={onToggle} title="Toggle dark / light mode">
+            <span>{dark ? '☀️' : '🌙'}</span>
+            <div className="track"><div className="thumb"></div></div>
+            <span>{dark ? 'Light' : 'Dark'}</span>
+        </button>
+    );
+}
+
+/* ── Browser Mockup Screenshot Component ── */
+function BrowserMockup({ url, dark }) {
+    const [imgState, setImgState] = useState('loading');
+    const [imgSrc, setImgSrc]     = useState('');
+
+    useEffect(() => {
+        if (!url) { setImgState('placeholder'); return; }
+        setImgState('loading');
+
+        const fullUrl = url.startsWith('http') ? url : 'https://' + url;
+        const encoded = encodeURIComponent(fullUrl);
+
+        // Free screenshot services, tried in order
+        const services = [
+            // WordPress mshots — completely free, no key needed
+            `https://s0.wordpress.com/mshots/v1/${encoded}?w=800&h=500`,
+            // Placeholder.com as final image fallback (won't happen — we SVG before that)
+        ];
+
+        let cancelled = false;
+        let timer = null;
+        let img = null;
+
+        const tryService = (src) => {
+            img = new Image();
+            timer = setTimeout(() => {
+                if (!cancelled) setImgState('placeholder');
+            }, 9000); // 9s timeout — mshots can be slow for uncached sites
+
+            img.onload = () => {
+                clearTimeout(timer);
+                if (cancelled) return;
+                // mshots returns a tiny grey pixel while it's rendering (not ready yet)
+                if (img.naturalWidth <= 8 || img.naturalHeight <= 8) {
+                    setImgState('placeholder');
+                } else {
+                    setImgSrc(src);
+                    setImgState('loaded');
+                }
+            };
+            img.onerror = () => {
+                clearTimeout(timer);
+                if (!cancelled) setImgState('placeholder');
+            };
+            img.crossOrigin = 'anonymous';
+            img.src = src;
+        };
+
+        tryService(services[0]);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+            if (img) { img.onload = null; img.onerror = null; }
+        };
+    }, [url]);
+
+    const cleanDomain = url ? url.replace(/https?:\/\/(www\.)?/, '').split('/')[0] : '';
+
+    return (
+        <div className="browser-mockup">
+            {/* Title bar */}
+            <div className="browser-titlebar">
+                <div className="browser-dots">
+                    <div className="browser-dot dot-red"></div>
+                    <div className="browser-dot dot-yellow"></div>
+                    <div className="browser-dot dot-green"></div>
+                </div>
+                <div className="browser-bar">
+                    <span className="browser-lock">🔒</span>
+                    <span className="browser-url">{cleanDomain || 'yourpractice.com'}</span>
+                </div>
+                {url && (
+                    <a href={url.startsWith('http') ? url : 'https://' + url}
+                       target="_blank" rel="noopener"
+                       className="browser-open-btn">
+                        Open ↗
+                    </a>
+                )}
+            </div>
+
+            {/* Screenshot area */}
+            <div className="browser-screenshot-area">
+                {imgState === 'loading' && (
+                    <div className="screenshot-loading">
+                        <div className="screenshot-spinner"></div>
+                        <span>Loading preview…</span>
+                    </div>
+                )}
+
+                {imgState === 'loaded' && (
+                    <img
+                        src={imgSrc}
+                        alt={`Screenshot of ${cleanDomain}`}
+                        onError={() => setImgState('placeholder')}
+                    />
+                )}
+
+                {imgState === 'placeholder' && (
+                    <SitePlaceholder domain={cleanDomain} dark={dark} />
+                )}
+            </div>
+
+            {/* Footer bar */}
+            <div style={{
+                padding: '6px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
+                background: dark ? '#22263a' : '#f5f5f5',
+            }}>
+                <span style={{ fontSize: 10, color: dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    🖥️ Site preview
+                </span>
+                {url && (
+                    <a href={url.startsWith('http') ? url : 'https://' + url}
+                       target="_blank" rel="noopener"
+                       style={{ fontSize: 10, color: '#60a5fa', textDecoration: 'none' }}>
+                        Open ↗
+                    </a>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/* ── Illustrated wireframe placeholder when screenshot is unavailable ── */
+function SitePlaceholder({ domain, dark }) {
+    const bg   = dark ? '#13151f' : '#f0f4ff';
+    const bar  = dark ? '#1e2236' : '#e2e8f0';
+    const text = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+    const acc  = '#10b981';
+    const subText = dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+
+    return (
+        <svg
+            viewBox="0 0 800 450"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+        >
+            {/* Background */}
+            <rect width="800" height="450" fill={bg}/>
+
+            {/* Nav bar */}
+            <rect width="800" height="52" fill={bar}/>
+            <rect x="24" y="16" width="90" height="20" rx="5" fill={acc} opacity="0.6"/>
+            <rect x="140" y="20" width="60" height="12" rx="3" fill={text}/>
+            <rect x="216" y="20" width="44" height="12" rx="3" fill={text}/>
+            <rect x="276" y="20" width="54" height="12" rx="3" fill={text}/>
+            <rect x="668" y="14" width="108" height="24" rx="6" fill={acc} opacity="0.7"/>
+
+            {/* Hero section — left */}
+            <rect x="60" y="90"  width="300" height="38" rx="6" fill={text}/>
+            <rect x="60" y="140" width="240" height="18" rx="4" fill={text} opacity="0.6"/>
+            <rect x="60" y="168" width="190" height="14" rx="3" fill={text} opacity="0.4"/>
+            <rect x="60" y="200" width="120" height="32" rx="7" fill={acc} opacity="0.7"/>
+            <rect x="192" y="200" width="100" height="32" rx="7" fill={text} opacity="0.18"/>
+
+            {/* Hero image — right */}
+            <rect x="420" y="70" width="340" height="210" rx="10" fill={bar} stroke={acc} strokeWidth="1" strokeOpacity="0.25"/>
+            <rect x="445" y="95"  width="290" height="14" rx="4" fill={text} opacity="0.5"/>
+            <rect x="445" y="117" width="220" height="10" rx="3" fill={text} opacity="0.3"/>
+            <rect x="445" y="135" width="260" height="10" rx="3" fill={text} opacity="0.25"/>
+            <rect x="445" y="153" width="200" height="10" rx="3" fill={text} opacity="0.2"/>
+            <rect x="445" y="185" width="290" height="60" rx="6" fill={acc} opacity="0.08"/>
+
+            {/* Cards row */}
+            <rect x="40"  y="300" width="220" height="108" rx="8" fill={bar}/>
+            <rect x="52"  y="314" width="70"  height="11"  rx="3" fill={acc} opacity="0.55"/>
+            <rect x="52"  y="333" width="170" height="8"   rx="2" fill={text} opacity="0.5"/>
+            <rect x="52"  y="348" width="140" height="8"   rx="2" fill={text} opacity="0.35"/>
+            <rect x="52"  y="363" width="155" height="8"   rx="2" fill={text} opacity="0.25"/>
+            <rect x="52"  y="382" width="80"  height="14"  rx="4" fill={acc} opacity="0.4"/>
+
+            <rect x="290" y="300" width="220" height="108" rx="8" fill={bar}/>
+            <rect x="302" y="314" width="70"  height="11"  rx="3" fill={acc} opacity="0.55"/>
+            <rect x="302" y="333" width="170" height="8"   rx="2" fill={text} opacity="0.5"/>
+            <rect x="302" y="348" width="140" height="8"   rx="2" fill={text} opacity="0.35"/>
+            <rect x="302" y="363" width="155" height="8"   rx="2" fill={text} opacity="0.25"/>
+            <rect x="302" y="382" width="80"  height="14"  rx="4" fill={acc} opacity="0.4"/>
+
+            <rect x="540" y="300" width="220" height="108" rx="8" fill={bar}/>
+            <rect x="552" y="314" width="70"  height="11"  rx="3" fill={acc} opacity="0.55"/>
+            <rect x="552" y="333" width="170" height="8"   rx="2" fill={text} opacity="0.5"/>
+            <rect x="552" y="348" width="140" height="8"   rx="2" fill={text} opacity="0.35"/>
+            <rect x="552" y="363" width="155" height="8"   rx="2" fill={text} opacity="0.25"/>
+            <rect x="552" y="382" width="80"  height="14"  rx="4" fill={acc} opacity="0.4"/>
+
+            {/* "Preview unavailable" pill overlay in center */}
+            <rect x="230" y="195" width="340" height="56" rx="10"
+                  fill={dark ? 'rgba(15,17,23,0.82)' : 'rgba(240,244,255,0.88)'}
+                  stroke={dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}
+                  strokeWidth="1"/>
+            {/* Globe icon outline */}
+            <circle cx="263" cy="223" r="10" fill="none" stroke={subText} strokeWidth="1.5"/>
+            <ellipse cx="263" cy="223" rx="5" ry="10" fill="none" stroke={subText} strokeWidth="1.2"/>
+            <line x1="253" y1="223" x2="273" y2="223" stroke={subText} strokeWidth="1.2"/>
+            {/* Text */}
+            <text x="283" y="219" fill={subText} fontSize="11.5" fontFamily="system-ui,sans-serif" fontWeight="600">
+                Preview unavailable
+            </text>
+            <text x="283" y="234" fill={dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.3)'} fontSize="9.5" fontFamily="system-ui,sans-serif">
+                Click "Open ↗" to visit {domain}
+            </text>
+        </svg>
+    );
+}
+
+function Rankings({ dark, analysisResults, formData }) {
+const [keywords,   setKeywords]   = React.useState([]);
+const [kwInput,    setKwInput]    = React.useState('');
+const [location,   setLocation]   = React.useState('India');
+const [device,     setDevice]     = React.useState('mobile');
+const [domain,     setDomain]     = React.useState('');
+const [isChecking, setIsChecking] = React.useState(false);
+const [error,      setError]      = React.useState(null);
+const resultsRef = React.useRef(null);
+React.useEffect(() => {
+    if (formData?.websiteUrl) {
+        const d = formData.websiteUrl.replace(/https?:\/\//,'').replace(/www\./,'').split('/')[0];
+        setDomain(d);
+    }
+}, [formData]);
+
+const T  = dark ? 'text-gray-100' : 'text-gray-800';
+const T2 = dark ? 'text-gray-400' : 'text-gray-600';
+const S  = dark ? 'bg-gray-800'   : 'bg-white';
+const BD = dark ? 'border-gray-700' : 'border-gray-200';
+
+const addKeyword = () => {
+    const kw = kwInput.trim();
+    if (!kw || keywords.includes(kw) || keywords.length >= 20) return;
+    setKeywords(p => [...p, kw]);
+    setKwInput('');
+};
+const removeKeyword = kw => setKeywords(p => p.filter(k => k !== kw));
+const handleKwKey   = e => { if (e.key === 'Enter') { e.preventDefault(); addKeyword(); } };
+
+/* ── vanilla JS render into the dark panel ── */
+function renderDarkPanel(data) {
+    const el = resultsRef.current;
+    if (!el) return;
+    const results = data.results || [];
+    const metrics = data.metrics || {};
+    const dev     = data.device  || 'mobile';
+    const live    = data.live_data;
+    const domainClean = data.domain || domain;
+
+    const CTR_CURVE  = {0:28.5,1:27.6,2:15.8,3:11.0,4:8.4,5:6.3,6:4.9,7:3.9,8:3.3,9:2.7,10:2.4};
+    const LOCAL_CTR  = {1:14.0,2:7.0,3:4.5};
+    const getCTR = rank => rank!=null ? (CTR_CURVE[rank]??Math.max(0.3,2.4-(rank-10)*0.06)) : 0;
+
+    const rankBadge = (rank, featured) => {
+        if (featured && rank!=null) return `<span class="rk-rbadge rk-top3">⭐ #${rank}</span>`;
+        if (rank==null)             return `<span class="rk-rbadge rk-none">NOT IN TOP 100</span>`;
+        if (rank<=3)  return `<span class="rk-rbadge rk-top3">#${rank}</span>`;
+        if (rank<=10) return `<span class="rk-rbadge rk-top10">#${rank}</span>`;
+        if (rank<=30) return `<span class="rk-rbadge rk-top30">#${rank}</span>`;
+        return `<span class="rk-rbadge rk-none">#${rank}</span>`;
+    };
+    const localBadge = lr => lr
+        ? `<span class="rk-local">📍 #${lr}</span>`
+        : `<span style="color:var(--rk-dim)">—</span>`;
+    const featBadge = f => f
+        ? `<span class="rk-feat">⭐ SNIPPET</span>`
+        : `<span style="color:var(--rk-dim)">—</span>`;
+    const srcBadge = s => {
+        const m = {serpapi:'rk-src-serp',google_cse:'rk-src-cse',estimated:'rk-src-est',ml_predicted:'rk-src-est'};
+        const l = {serpapi:'SerpApi',google_cse:'CSE',estimated:'Est.',ml_predicted:'ML'};
+        return `<span class="rk-src ${m[s]||'rk-src-est'}">${l[s]||s||'?'}</span>`;
+    };
+    const ctrCell = (rank, lr) => {
+        let ctr = getCTR(rank);
+        if (lr) ctr += (LOCAL_CTR[lr]||0);
+        const pct   = Math.min(100,(ctr/42)*100);
+        const color = ctr>10?'var(--rk-green)':ctr>4?'var(--rk-yellow)':ctr>0?'var(--rk-orange)':'var(--rk-red)';
+        return `<span class="rk-ctr-val" style="color:${color}">${ctr.toFixed(1)}%</span>
+                <div class="rk-ctr-bar"><div class="rk-ctr-fill" style="width:${pct}%;background:${color}"></div></div>`;
+    };
+    const kwTags = (kw, dv) => {
+        let t = '';
+        if ((kw||'').toLowerCase().includes('near me')) t += `<span class="rk-tag rk-tag-local">local</span>`;
+        if (dv==='mobile') t += `<span class="rk-tag rk-tag-mobile">📱</span>`;
+        return t ? `<div class="rk-tags">${t}</div>` : '';
+    };
+
+    // visibility
+    const vs  = metrics.visibility_score||0;
+    const circ = 213.6;
+    const off  = circ - (vs/100)*circ;
+    const dialColor = vs>=50?'var(--rk-green)':vs>=25?'var(--rk-yellow)':'var(--rk-red)';
+
+    // alert
+    const total   = metrics.total_keywords||0;
+    const notRank = metrics.not_ranking||0;
+    const localPk = metrics.local_pack_count||0;
+    let alertHtml = '';
+    if (notRank===total && total>0) {
+        alertHtml = `<div class="rk-alert rk-alert-red"><div class="rk-alert-dot"></div>Low visibility — most patients searching these keywords won't find your practice. SEO work needed urgently.</div>`;
+    } else if (vs<30) {
+        alertHtml = `<div class="rk-alert rk-alert-yellow"><div class="rk-alert-dot"></div>Moderate visibility — significant room for improvement. Focus on GMB and local keywords.</div>`;
+    } else if (localPk>0) {
+        alertHtml = `<div class="rk-alert rk-alert-green"><div class="rk-alert-dot"></div>Good local presence — appearing in the Maps pack for ${localPk} keyword${localPk>1?'s':''}.</div>`;
+    }
+
+    // table rows
+    const rows = results.length===0
+        ? `<tr><td colspan="7"><div class="rk-empty"><div class="rk-empty-icon">🔍</div><p>No results yet.</p></div></td></tr>`
+        : results.map(r => {
+            const isMl = r.source==='ml_predicted';
+            const urlHtml = r.url
+                ? `<a href="${r.url}" target="_blank" class="rk-url">${r.url.replace(/^https?:\/\//,'').substring(0,40)}${r.url.length>45?'…':''}</a>`
+                : `<span class="rk-nourl">—</span>`;
+            return `<tr class="${isMl?'rk-ml-row':''}">
+                <td><div style="display:flex;align-items:center;gap:6px">${rankBadge(r.rank,r.featured)}${isMl?`<span class="rk-ml-badge">ML</span>`:''}</div></td>
+                <td>${localBadge(r.local_rank)}</td>
+                <td><div class="rk-kw">${r.keyword}</div>${kwTags(r.keyword,r.device||dev)}</td>
+                <td class="rk-hide-sm">${urlHtml}</td>
+                <td>${featBadge(r.featured)}</td>
+                <td class="rk-hide-sm">${srcBadge(r.source)}</td>
+                <td>${ctrCell(r.rank,r.local_rank)}</td>
+            </tr>`;
+        }).join('');
+
+    // roadmap
+    const roadItems = [];
+    const notRankList = results.filter(r=>!r.rank);
+    if (notRankList.length>0) roadItems.push({icon:'⊘',label:'Create targeted pages',desc:`${notRankList.length} keyword${notRankList.length>1?'s':''} (${notRankList.map(r=>`"${r.keyword}"`).join(', ')}) have no ranking. Write dedicated service pages or blog posts for each.`,impact:'HIGH'});
+    if (!localPk) roadItems.push({icon:'⊕',label:'Claim your Google Business Profile',desc:'Fully completing your GMB listing often yields top-3 rankings in the local pack for location-based searches.',impact:'HIGH'});
+    if (!(metrics.featured_count>0)) roadItems.push({icon:'⊙',label:'Target featured snippets',desc:'Add FAQ schema and concise Q&A paragraphs to win position 0.',impact:'MEDIUM'});
+    roadItems.push({icon:'⊛',label:'Build local citations',desc:'List on Healthgrades, Zocdoc, WebMD directory and local health directories to boost domain authority.',impact:'MEDIUM'});
+    roadItems.push({icon:'◎',label:'Improve PageSpeed score',desc:'Compress images and enable browser caching. Each 10-point PageSpeed increase correlates with ~1–2 rank positions.',impact:'LOW'});
+    const impCls = {HIGH:'rk-impact-high',MEDIUM:'rk-impact-medium',LOW:'rk-impact-low'};
+    const roadHtml = roadItems.map(it=>`
+        <div class="rk-road-item">
+            <div class="rk-road-icon">${it.icon}</div>
+            <div class="rk-road-body"><div class="rk-road-label">${it.label}</div><div class="rk-road-desc">${it.desc}</div></div>
+            <span class="rk-impact ${impCls[it.impact]}">${it.impact}</span>
+        </div>`).join('');
+
+    // inject everything
+    el.innerHTML = `
+    <div class="rk-shell">
+        <!-- Header -->
+        <div class="rk-header">
+            <div class="rk-domain">${domainClean.replace('.','<span>.</span>')}</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--rk-muted)">
+                ${data.location||'India'} · ${dev} · ${results.length} keyword${results.length!==1?'s':''}
+                ${live
+                    ? `<div class="rk-live-badge"><div class="rk-live-dot"></div>Live Google data</div>`
+                    : `<div class="rk-est-badge">⚡ Estimated data</div>`
+                }
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="rk-section"><div class="rk-section-title">📊 Smart Metrics</div><div class="rk-section-line"></div></div>
+        <div class="rk-metrics">
+            <div class="rk-mcard" style="--rk-accent:#4d9fff18">
+                <div class="rk-mlabel">Visibility</div>
+                <div class="rk-dial">
+                    <svg width="72" height="72" viewBox="0 0 72 72">
+                        <circle class="rk-dial-bg" cx="36" cy="36" r="30"/>
+                        <circle class="rk-dial-fill" cx="36" cy="36" r="30"
+                            stroke="${dialColor}" stroke-dasharray="188.5"
+                            stroke-dashoffset="${188.5-(vs/100)*188.5}"/>
+                    </svg>
+                    <div class="rk-dial-txt" style="color:${dialColor}">${vs}</div>
+                </div>
+                <div class="rk-msub" style="text-align:center">~${(metrics.ctr_estimate||0).toFixed(1)}% avg CTR</div>
+            </div>
+            <div class="rk-mcard" style="--rk-accent:#f5c84215">
+                <div class="rk-mlabel">Avg Rank</div>
+                <div class="rk-mval" style="color:var(--rk-yellow)">${metrics.avg_rank?'#'+metrics.avg_rank:'—'}</div>
+                <div class="rk-msub">across all keywords</div>
+            </div>
+            <div class="rk-mcard" style="--rk-accent:#00e5a015">
+                <div class="rk-mlabel">Top 3</div>
+                <div class="rk-mval" style="color:var(--rk-green)">${metrics.top_3||0}</div>
+                <div class="rk-msub">positions 1–3</div>
+            </div>
+            <div class="rk-mcard" style="--rk-accent:#4d9fff15">
+                <div class="rk-mlabel">Local Pack 📍</div>
+                <div class="rk-mval" style="color:var(--rk-blue)">${metrics.local_pack_count||0}</div>
+                <div class="rk-msub">in Maps 3-pack</div>
+            </div>
+            <div class="rk-mcard" style="--rk-accent:#ff456715">
+                <div class="rk-mlabel">Not Ranking</div>
+                <div class="rk-mval" style="color:var(--rk-red)">${metrics.not_ranking||0}</div>
+                <div class="rk-msub">outside top 100</div>
+            </div>
+        </div>
+
+        ${alertHtml}
+
+        <!-- Table -->
+        <div class="rk-section"><div class="rk-section-title">📋 Keyword Rankings</div><div class="rk-section-line"></div></div>
+        <div class="rk-table-wrap">
+            <table class="rk-table">
+                <thead><tr>
+                    <th>Rank</th><th>Local Pack</th><th>Keyword</th>
+                    <th class="rk-hide-sm">URL</th><th>Featured</th>
+                    <th class="rk-hide-sm">Source</th><th>Est. CTR</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+
+        <!-- Roadmap -->
+        <div class="rk-section" style="margin-top:20px"><div class="rk-section-title">💡 Ranking Improvement Roadmap</div><div class="rk-section-line"></div></div>
+        <div class="rk-roadmap">${roadHtml}</div>
+    </div>`;
+}
+
+const runCheck = async () => {
+    if (!domain || keywords.length===0) return;
+    setIsChecking(true); setError(null);
+    if (resultsRef.current) resultsRef.current.innerHTML = '';
+    try {
+        const res  = await fetch('/api/rank-check', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({domain, keywords, location, device}),
+        });
+        const data = await res.json();
+        if (data.error) { setError(data.error); }
+        else { renderDarkPanel(data); }
+    } catch(e) {
+        setError('Could not reach server. Make sure your backend is running.');
+    } finally { setIsChecking(false); }
+};
+
+return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-8">
+            <h2 className={`text-3xl font-extrabold ${T}`}>📈 Ranking Checker</h2>
+            <p className={`${T2} mt-1 text-sm`}>See exactly where your practice ranks on Google for the keywords your patients search.</p>
+        </div>
+
+        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4 mb-6 text-sm">⚠️ {error}</div>}
+
+        {/* ── Input form — unchanged from original ── */}
+       <div className={`rc-panel ${S} border ${BD} shadow-sm mb-4`}>
+    <div className="rc-head">
+        <div className="rc-head-icon">🔍</div>
+        <div>
+            <div className={`rc-head-title ${T}`}>Configure Rank Check</div>
+            <div className={`rc-head-sub ${T2}`}>Enter your domain and target keywords to begin</div>
+        </div>
+    </div>
+
+    <div className="rc-grid3">
+        <div>
+            <label className="rc-field-label">🌐 Domain</label>
+            <input value={domain} onChange={e=>setDomain(e.target.value)} placeholder="exampleclinic.com" className="rc-input"/>
+        </div>
+        <div>
+            <label className="rc-field-label">📍 Location</label>
+            <input value={location} onChange={e=>setLocation(e.target.value)} placeholder="Patiala, Punjab" className="rc-input"/>
+        </div>
+        <div>
+            <label className="rc-field-label">📱 Device</label>
+            <select value={device} onChange={e=>setDevice(e.target.value)} className="rc-select">
+                <option value="mobile">📱 Mobile</option>
+                <option value="desktop">🖥️ Desktop</option>
+            </select>
+        </div>
+    </div>
+
+    <div className="mb-5">
+        <label className="rc-field-label">
+            🏷️ Keywords <span className="rc-count">({keywords.length}/20)</span>
+        </label>
+        <div className="rc-kw-row">
+            <input value={kwInput} onChange={e=>setKwInput(e.target.value)} onKeyDown={handleKwKey}
+                placeholder='e.g. "chiropractor near me" — press Enter to add'/>
+            <button onClick={addKeyword} disabled={!kwInput.trim()||keywords.length>=20} className="rc-add-btn">
+                + Add
+            </button>
+        </div>
+        {keywords.length>0 ? (
+            <div className="flex flex-wrap gap-2 mt-3">
+                {keywords.map(kw=>(
+                    <span key={kw} className="rc-kw-tag">{kw}<button onClick={()=>removeKeyword(kw)}>×</button></span>
+                ))}
+            </div>
+        ) : (
+            <div className="rc-empty-kw">✏️ No keywords added yet — add at least one to run a check.</div>
+        )}
+    </div>
+
+    <button onClick={runCheck} disabled={isChecking||!domain||keywords.length===0} className="rc-submit">
+        {isChecking
+            ? <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 60"/></svg>Checking rankings…</>
+            : <>🔍 Check Rankings</>}
+    </button>
+</div>
+
+        {isChecking && (
+            <div className="flex flex-col items-center py-16 gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                <p className={`${T2} text-sm`}>Checking Google rankings for {keywords.length} keyword{keywords.length>1?'s':''}…</p>
+            </div>
+        )}
+
+        {/* ── Dark results panel — vanilla JS renders into this div ── */}
+        <div ref={resultsRef}></div>
+    </div>
+);
+}
+function FaqAccordion({ T, T2, dark }) {
+    const [open, setOpen] = useState(0);
+    const faqs = [
+        { q: 'How accurate is the analysis?', a: 'We pull live Google ranking data, PageSpeed scores, and on-page SEO signals directly from your website and search results, so the score reflects your real-world online presence at the time of the check.' },
+        { q: 'How long does an analysis take?', a: 'Most analyses complete in under a minute. Ranking checks across multiple keywords may take a little longer depending on how many keywords you add.' },
+        { q: 'Do I need any technical knowledge?', a: 'Not at all. Just enter your practice details and website URL — we handle the technical analysis and translate it into plain-language recommendations.' },
+        { q: 'Is my data kept private?', a: 'Yes. Your practice information is only used to generate your analysis and is not shared with third parties.' },
+    ];
+    return (
+        <div className="max-w-3xl mx-auto">
+            {faqs.map((f, i) => (
+                <div key={i} className={`faq-item ${open === i ? 'open' : ''}`}>
+                    <button className={`faq-q ${T}`} onClick={() => setOpen(open === i ? -1 : i)}>
+                        <span>{f.q}</span>
+                        <span className="faq-chevron">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </span>
+                    </button>
+                    <div className="faq-a" style={{ maxHeight: open === i ? '200px' : '0px' }}>
+                        <div className={`faq-a-inner ${T2}`}>{f.a}</div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function App() {
+    const [dark, setDark]                         = useState(() => savedTheme() === 'dark');
+    const [activeTab, setActiveTab]               = useState('home');
+    const [analysisResults, setAnalysisResults]   = useState(null);
+    const [isAnalyzing, setIsAnalyzing]           = useState(false);
+    const [activeResultsTab, setActiveResultsTab] = useState('overview');
+    const [competitorData, setCompetitorData]     = useState(null);
+    const [loadingComp, setLoadingComp]           = useState(false);
+    const [compError, setCompError]               = useState(null);
+    const [openFaq, setOpenFaq] = useState(0);
+    const radarRef    = useRef(null);
+    const barRef      = useRef(null);
+    const radarInst   = useRef(null);
+    const barInst     = useRef(null);
+    const blobRefs = useRef([]);
+    const homeScrollRef = useRef(null);
+
+    const [form, setForm] = useState({
+        practiceName:'', websiteUrl:'', providerName:'',
+        zip:'', phone:'', email:'', currentSoftware:''
+    });
+    const [signIn, setSignIn] = useState({ email:'', password:'' });
+    // Scroll-reactive parallax for home blobs
+useEffect(() => {
+    if (activeTab !== 'home') return;
+
+    // Each blob: [horizontal drift speed, vertical drift speed, rotation-ish skew]
+    const speeds = [
+        { x: 0.04,  y: 0.10 },
+        { x: -0.06, y: 0.07 },
+        { x: 0.05,  y: -0.08 },
+        { x: -0.04, y: 0.09 },
+        { x: 0.07,  y: -0.05 },
+    ];
+
+    let ticking = false;
+    const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+            const y = window.scrollY;
+            blobRefs.current.forEach((el, i) => {
+                if (!el) return;
+                const sp = speeds[i] || { x: 0.05, y: 0.08 };
+                el.style.transform = `translate(${y * sp.x}px, ${y * sp.y}px)`;
+            });
+            ticking = false;
+        });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // set initial position
+    return () => window.removeEventListener('scroll', onScroll);
+}, [activeTab]);
+    useEffect(() => { applyTheme(dark ? 'dark' : 'light'); }, [dark]);
+
+    const toggleDark = () => setDark(d => !d);
+    const fi = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+    const S  = dark ? 'bg-gray-800'  : 'bg-white';
+    const S2 = dark ? 'bg-gray-700'  : 'bg-white';
+    const BG = dark ? 'bg-gray-900'  : 'bg-gray-50';
+    const T  = dark ? 'text-gray-100': 'text-gray-800';
+    const T2 = dark ? 'text-gray-400': 'text-gray-600';
+    const BD = dark ? 'border-gray-700': 'border-gray-200';
+    
+    const pollStatus = async (id) => {
+        let tries = 0;
+        const tick = async () => {
+            if (tries++ > 120) { setIsAnalyzing(false); return; }
+            try {
+                const r = await fetch(`/api/analysis-status/${id}`);
+                const d = await r.json();
+                if (d.status === 'complete') {
+                    setAnalysisResults(d.results); setIsAnalyzing(false);
+                    setActiveTab('results'); setActiveResultsTab('overview'); setCompetitorData(null);
+                } else if (d.status === 'error') { setIsAnalyzing(false); alert('Analysis failed: '+(d.error||'')); }
+                else setTimeout(tick, 2000);
+            } catch { setTimeout(tick, 2000); }
+        };
+        tick();
+    };
+    const startAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+        const r = await fetch('/api/analyze-website', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) });
+        const d = await r.json();
+        if (d.analysis_id) pollStatus(d.analysis_id);
+        else { setIsAnalyzing(false); alert('Failed to start analysis'); }
+    } catch { setIsAnalyzing(false); alert('Cannot reach server.'); }
+    };
+    const fetchComp = async () => {
+        if (!analysisResults || !form.zip) return;
+        setLoadingComp(true); setCompError(null);
+        try {
+            const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ zip:form.zip, currentSoftware:form.currentSoftware, websiteUrl:form.websiteUrl, myScore:analysisResults.score, radius:5000, maxCompetitors:3 }) });
+            const d = await r.json();
+            if (d.error) setCompError(d.error); else setCompetitorData(d);
+        } catch { setCompError('Could not load competitor data.'); }
+        finally { setLoadingComp(false); }
+    };
+    useEffect(() => {
+        if (activeResultsTab==='competitive' && analysisResults && !competitorData && !loadingComp) fetchComp();
+    }, [activeResultsTab, analysisResults]);
+
+    useEffect(() => {
+        if (activeResultsTab === 'competitive' && competitorData) setTimeout(buildCharts, 150);
+        return () => {
+            if (radarInst.current) { radarInst.current.destroy(); radarInst.current = null; }
+            if (barInst.current)   { barInst.current.destroy();   barInst.current   = null; }
+        };
+    }, [activeResultsTab, competitorData,dark,analysisResults]);
+
+    const buildCharts = () => {
+        if (radarInst.current) { radarInst.current.destroy(); radarInst.current = null; }
+        if (barInst.current)   { barInst.current.destroy();   barInst.current   = null; }
+
+        const ar        = analysisResults || {};
+        const mainScore = ar.score ?? 70;
+
+        const ms = {
+            desktop:     Math.min(100, ar.pagespeed?.desktop?.score || Math.round(mainScore * 1.02)),
+            mobile:      Math.min(100, ar.pagespeed?.mobile?.score  || Math.round(mainScore * 0.92)),
+            seo:         ar.seo_score        ?? Math.min(100, Math.round(mainScore * 1.05)),
+            engagement:  ar.engagement_score ?? Math.min(100, Math.round(mainScore * 0.78)),
+            performance: mainScore,
+        };
+        const avg = competitorData?.industry_avg ?? 65;
+
+        if (radarRef.current) {
+            radarInst.current = new Chart(radarRef.current.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['Desktop', 'Mobile', 'SEO', 'Engagement', 'Performance'],
+                    datasets: [
+                        {
+                            label: 'Your Practice',
+                            data: [ms.desktop, ms.mobile, ms.seo, ms.engagement, ms.performance],
+                            borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.2)',
+                            borderWidth: 2, pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5
+                        },
+                        {
+                            label: 'Industry Avg',
+                            data: [avg, avg - 5, avg, avg - 10, avg],
+                            borderColor: '#cbd5e0', backgroundColor: 'rgba(203,213,224,.08)',
+                            borderWidth: 2, pointBackgroundColor: '#cbd5e0',
+                            pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 24, bottom: 8, left: 8, right: 8 } },
+                    plugins: {
+                        legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 14 } }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true, min: 0, max: 100,
+                            ticks: { stepSize: 20, backdropColor: 'transparent' },
+                            pointLabels: { font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+        if (barRef.current && competitorData) {
+            const labels = ['Your Practice', ...competitorData.competitors.map(c => c.name.length>18?c.name.slice(0,18)+'…':c.name)];
+            const scores = [competitorData.my_score, ...competitorData.competitors.map(c=>c.score)];
+            const colors = scores.map((_,i) => i===0?'#667eea':'#cbd5e0');
+            barInst.current = new Chart(barRef.current.getContext('2d'), {
+                type:'bar',
+                data:{ labels, datasets:[{ label:'Overall Score', data:scores, backgroundColor:colors, borderColor:colors, borderWidth:2, borderRadius:8 }] },
+                options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, layout:{padding:{right:10}}, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,max:100}} }
+            });
+        }
+    };
+
+    /* ════ RENDER SECTIONS ════ */
+const renderHome = () => (
+    <div className="home-bg-wrap">
+        <div className="home-blob-layer">
+            <div className="home-blob b1" ref={el => blobRefs.current[0] = el}></div>
+            <div className="home-blob b2" ref={el => blobRefs.current[1] = el}></div>
+            <div className="home-blob b3" ref={el => blobRefs.current[2] = el}></div>
+            <div className="home-blob b4" ref={el => blobRefs.current[3] = el}></div>
+            <div className="home-blob b5" ref={el => blobRefs.current[4] = el}></div>
+        </div>
+
+        <main className="home-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+            {/* ── Hero ── */}
+            <div className="text-center py-20">
+                <h1 className={`text-5xl font-bold ${T} mb-6`}>Welcome to RankPulse </h1>
+                <p className={`text-xl ${T2} mb-8 max-w-2xl mx-auto`}>Analyze your practice's online presence and discover opportunities to attract more patients.</p>
+                <button onClick={()=>setActiveTab('diagnose')} className="bg-gradient-to-r from-emerald-400 to-emerald-600 text-white px-12 py-4 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-all">Get Your Free Analysis</button>
+            </div>
+
+            {/* ── Stats bar ── */}
+            <div className="stats-bar mt-4">
+                {[
+                    { num: '30+', label: 'Practices Analyzed' },
+                    { num: '5', label: 'Scoring Categories' },
+                    { num: '60s', label: 'Avg. Analysis Time' },
+                    { num: '38%', label: 'Avg. Visibility Gain' },
+                ].map((s,i) => (
+                    <div key={i} className="stat-cell">
+                        <div className="stat-num">{s.num}</div>
+                        <div className={`stat-label ${T2}`}>{s.label}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* ── Feature cards ── */}
+            <div className="grid md:grid-cols-3 gap-8 mt-20">
+                {[
+                    { icon:'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', title:'Instant Analysis', desc:'Get your website score in seconds across 5 critical categories.' },
+                    { icon:'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', title:'Secure Verification', desc:'Your phone number is verified with OTP for security and follow-up.' },
+                    { icon:'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', title:'More Patients', desc:'Improve your rankings and attract more patients to your practice.' },
+                ].map((c,i) => (
+                    <div key={i} className={`${S} rounded-lg shadow-md p-8 text-center`}>
+                        <div className={`${dark?'bg-emerald-900':'bg-emerald-100'} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4`}>
+                            <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={c.icon}/></svg>
+                        </div>
+                        <h3 className={`text-xl font-bold ${T} mb-3`}>{c.title}</h3>
+                        <p className={T2}>{c.desc}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* ── How It Works  */}
+            <div className="mt-28">
+                <h2 className={`text-4xl font-bold ${T} text-center mb-3`}>How It Works</h2>
+                <p className={`${T2} text-center mb-12 max-w-xl mx-auto`}>Two simple steps to see where your practice stands online.</p>
+                <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                    {[
+                        { n:'1', title:'Enter Your Details', desc:'Provide your practice name, website URL, and contact information.' },
+                        { n:'2', title:'Get Your Score', desc:'Receive detailed analysis across 5 categories with actionable recommendations.' },
+                    ].map(s => (
+                        <div key={s.n} className={`${S} rounded-lg shadow-md p-8 text-center`}>
+                            <div className={`${dark?'bg-emerald-900':'bg-emerald-100'} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4`}>
+                                <span className="text-2xl font-bold text-emerald-500">{s.n}</span>
+                            </div>
+                            <h3 className={`text-xl font-bold ${T} mb-3`}>{s.title}</h3>
+                            <p className={T2}>{s.desc}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="text-center mt-10">
+                    <button onClick={()=>setActiveTab('diagnose')} className="bg-gradient-to-r from-emerald-400 to-emerald-600 text-white px-10 py-3 rounded-lg text-base font-semibold shadow-md hover:shadow-lg transition-all">Start Your Free Analysis</button>
+                </div>
+            </div>
+
+            {/* ── FAQ ── */}
+            <div className="mt-28">
+                <h2 className={`text-4xl font-bold ${T} text-center mb-3`}>Frequently Asked Questions</h2>
+                <p className={`${T2} text-center mb-12`}>Everything you need to know before getting started.</p>
+                <FaqAccordion T={T} T2={T2} dark={dark} />
+            </div>
+        </main>
+    </div>
+);
+
+    const renderSignIn = () => (
+        <div className="max-w-md mx-auto py-12">
+            <div className={`${S} rounded-lg shadow-md p-8`}>
+                <h2 className={`text-3xl font-bold ${T} text-center mb-8`}>Sign In</h2>
+                <form onSubmit={(e)=>{e.preventDefault();alert('Coming soon!');}} className="space-y-6">
+                    {[{l:'Email',name:'email',type:'email',ph:'your@email.com'},{l:'Password',name:'password',type:'password',ph:'••••••••'}].map(f=>(
+                        <div key={f.name}>
+                            <label className={`block ${dark?'text-gray-300':'text-gray-700'} font-medium mb-2`}>{f.l}</label>
+                            <input type={f.type} name={f.name} value={signIn[f.name]} onChange={e=>setSignIn(p=>({...p,[e.target.name]:e.target.value}))}
+                                className={`w-full px-4 py-3 border rounded-lg ${dark?'bg-gray-700 border-gray-600 text-gray-100':'border-gray-300'}`} placeholder={f.ph} required/>
+                        </div>
+                    ))}
+                    <button type="submit" className="w-full bg-emerald-400 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg">Sign In</button>
+                    <div className="text-center"><a href="#" className="text-emerald-500 text-sm">Forgot password?</a></div>
+                </form>
+            </div>
+        </div>
+    );
+
+    const renderDiagnoseForm = () => (
+        <div className={`${S} rounded-lg shadow-md p-8 max-w-3xl mx-auto`}>
+            <h2 className={`text-3xl font-bold ${T} text-center mb-2`}>See how your practice appears online,</h2>
+            <p className={`${T2} text-center mb-8`}>instantly and for free.</p>
+            <form onSubmit={(e)=>{e.preventDefault(); startAnalysis();}} className="space-y-6">
+                {[
+                    {l:'Practice Name',    n:'practiceName',  t:'text',  ph:'Vibrant Health & Wellness Center'},
+                    {l:'Practice Website', n:'websiteUrl',    t:'url',   ph:'https://www.yourpractice.com'},
+                ].map(f=>(
+                    <div key={f.n}>
+                        <label className={`block ${dark?'text-gray-300':'text-gray-700'} font-medium mb-2`}>{f.l} <span className="text-red-500">*</span></label>
+                        <input type={f.t} name={f.n} value={form[f.n]} onChange={fi} className={`w-full px-4 py-3 border rounded-lg ${dark?'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500':'border-gray-300 bg-gray-50'}`} placeholder={f.ph} required/>
+                    </div>
+                ))}
+                <div className="grid md:grid-cols-2 gap-4">
+                    {[
+                        {l:'Provider Name',     n:'providerName', t:'text', ph:'John Doe'},
+                        {l:'Practice ZIP Code', n:'zip',          t:'text', ph:'12345'},
+                    ].map(f=>(
+                        <div key={f.n}>
+                            <label className={`block ${dark?'text-gray-300':'text-gray-700'} font-medium mb-2`}>{f.l} <span className="text-red-500">*</span></label>
+                            <input type={f.t} name={f.n} value={form[f.n]} onChange={fi} className={`w-full px-4 py-3 border rounded-lg ${dark?'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500':'border-gray-300 bg-gray-50'}`} placeholder={f.ph} required/>
+                        </div>
+                    ))}
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                    {[
+                        {l:'Phone Number',      n:'phone', t:'tel',   ph:'(555) 123-4567'},
+                        {l:'Practice Email ID', n:'email', t:'email', ph:'john@example.com'},
+                    ].map(f=>(
+                        <div key={f.n}>
+                            <label className={`block ${dark?'text-gray-300':'text-gray-700'} font-medium mb-2`}>{f.l} <span className="text-red-500">*</span></label>
+                            <input type={f.t} name={f.n} value={form[f.n]} onChange={fi} className={`w-full px-4 py-3 border rounded-lg ${dark?'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500':'border-gray-300 bg-gray-50'}`} placeholder={f.ph} required/>
+                        </div>
+                    ))}
+                </div>
+                <div>
+                    <label className={`block ${dark?'text-gray-300':'text-gray-700'} font-medium mb-2`}>Current Software <span className="text-red-500">*</span></label>
+                    <select name="currentSoftware" value={form.currentSoftware} onChange={fi} className={`w-full px-4 py-3 border rounded-lg ${dark?'bg-gray-700 border-gray-600 text-gray-100':'border-gray-300 bg-gray-50'}`} required>
+                        <option value="">Select your practice management software</option>
+                        <option value="jane-app">Jane App</option>
+                        <option value="chirotouch">ChiroTouch</option>
+                        <option value="chirospring">ChiroSpring</option>
+                        <option value="reviewwave">ReviewWave</option>
+                        <option value="chirofusion">ChiroFusion</option>
+                        <option value="chirohd">ChiroHD</option>
+                        <option value="eclipse-ehr">Eclipse EHR</option>
+                        <option value="genesis-clinic-mind">Genesis Chiropractic Software/Clinic Mind</option>
+                    </select>
+                </div>
+                <button type="submit" disabled={isAnalyzing} className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 rounded-lg text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isAnalyzing ? 'ANALYZING...' : 'DIAGNOSE INSTANTLY'}
+                </button>
+                {isAnalyzing && <div className="text-center"><div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div><p className={`${T2} mt-2`}>Analyzing your website...</p></div>}
+            </form>
+        </div>
+    );
+
+    /* ── Results ── */
+    const renderResults = () => {
+        if (!analysisResults) return null;
+        const ms = analysisResults.score ?? 70;
+        const sc = {
+            desktop:    Math.min(100, analysisResults.pagespeed?.desktop?.score || Math.round(ms*1.02)),
+            mobile:     Math.min(100, analysisResults.pagespeed?.mobile?.score  || Math.round(ms*0.92)),
+            seo:        analysisResults.seo_score        ?? Math.min(100, Math.round(ms*1.05)),
+            engagement: analysisResults.engagement_score ?? Math.min(100, Math.round(ms*0.78)),
+        };
+
+        const Overview = () => {
+            const passed = (analysisResults.criteria||[]).filter(c=>c.passed);
+            const failed = (analysisResults.criteria||[]).filter(c=>!c.passed);
+            const sugg   = analysisResults.ai_suggestions||[];
+            const strText = passed.length>0 ? passed.slice(0,2).map(c=>c.text).join(' and ') : 'Solid online foundation';
+            const oppText = sugg.length>0 ? sugg[0] : failed.length>0 ? failed.slice(0,2).map(c=>c.text).join(' and ') : 'Continue maintaining current standards';
+            const pts     = failed.reduce((s,c)=>s+(c.points||0),0);
+            const impText = pts>0 ? '+'+Math.round(pts*1.5)+'% more patient inquiries possible' : 'Maintain your strong online presence';
+
+            return (
+                <div className="space-y-8">
+
+                    {/* ── HERO: Score + Browser Mockup side by side ── */}
+                    <div className="grid md:grid-cols-2 gap-6 items-center">
+
+                        {/* Left: Score ring + label */}
+                        <div className="flex flex-col items-center justify-center gap-4 py-4">
+                            {/* Outer glow ring */}
+                            <div style={{
+                                width: 140, height: 140,
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 0 0 8px rgba(102,126,234,0.12), 0 12px 40px rgba(102,126,234,0.4)',
+                                position: 'relative',
+                            }}>
+                                {/* Inner surface */}
+                                <div style={{
+                                    width: 104, height: 104,
+                                    borderRadius: '50%',
+                                    background: dark ? 'var(--surface, #1a1d27)' : '#fff',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}>
+                                    <span style={{
+                                        fontSize: 36,
+                                        fontWeight: 800,
+                                        color: '#667eea',
+                                        lineHeight: 1,
+                                    }}>{ms}</span>
+                                    <span style={{
+                                        fontSize: 10,
+                                        color: dark ? '#94a3b8' : '#6b7280',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        marginTop: 2,
+                                    }}>/ 100</span>
+                                </div>
+                            </div>
+
+                            <div className="text-center">
+                                <p className={`font-bold ${T} text-base`}>Overall Online Presence Score</p>
+                                {form.websiteUrl && (
+                                    <a
+                                        href={form.websiteUrl.startsWith('http') ? form.websiteUrl : 'https://' + form.websiteUrl}
+                                        target="_blank"
+                                        rel="noopener"
+                                        className="text-blue-400 hover:text-blue-300 text-sm mt-1 inline-flex items-center gap-1 transition-colors"
+                                    >
+                                        🌐 {form.websiteUrl.replace(/https?:\/\/(www\.)?/,'').split('/')[0]}
+                                    </a>
+                                )}
+                            </div>
+
+                            {/* Mini score pills */}
+                            <div className="flex gap-3 flex-wrap justify-center">
+                                {[
+                                    { label: 'Desktop', val: sc.desktop,    color: '#10b981' },
+                                    { label: 'Mobile',  val: sc.mobile,     color: '#3b82f6' },
+                                    { label: 'SEO',     val: sc.seo,        color: '#f59e0b' },
+                                    { label: 'Engage',  val: sc.engagement, color: '#8b5cf6' },
+                                ].map(p => (
+                                    <div key={p.label} style={{
+                                        background: dark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                                        border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
+                                        borderRadius: 8,
+                                        padding: '4px 10px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        fontSize: 12,
+                                    }}>
+                                        <span style={{ color: p.color, fontWeight: 700 }}>{p.val}</span>
+                                        <span style={{ color: dark ? '#94a3b8' : '#6b7280' }}>{p.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right: Browser mockup with live screenshot */}
+                        <div>
+                            <BrowserMockup url={form.websiteUrl} dark={dark} />
+                        </div>
+                    </div>
+
+                    {/* ── Score Cards Row ── */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                            {name:'Desktop',    s:sc.desktop,    col:sc.desktop>=70   ?'from-green-400 to-green-600':'from-yellow-400 to-yellow-600'},
+                            {name:'Mobile',     s:sc.mobile,     col:sc.mobile>=70    ?'from-green-400 to-green-600':'from-yellow-400 to-yellow-600'},
+                            {name:'SEO',        s:sc.seo,        col:sc.seo>=70       ?'from-green-400 to-green-600':'from-yellow-400 to-yellow-600'},
+                            {name:'Engagement', s:sc.engagement, col:sc.engagement>=60?'from-yellow-400 to-yellow-600':'from-red-400 to-red-600'},
+                        ].map((x,i)=>(
+                            <div key={i} className={`bg-gradient-to-br ${x.col} p-6 rounded-lg text-white text-center`}>
+                                <div className="text-3xl font-bold mb-2">{x.s}</div>
+                                <div className="text-sm opacity-90">{x.name}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* ── AI Summary ── */}
+                    {analysisResults.ai_summary && (
+                        <div className={`${dark?'bg-indigo-950 border-indigo-700':'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
+                            <p className={`${dark?'text-indigo-300':'text-blue-800'} text-sm`}><span className="font-bold">AI Insight:</span> {analysisResults.ai_summary}</p>
+                        </div>
+                    )}
+
+                    {/* ── Strengths / Opportunities / Impact ── */}
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {[
+                            {icon:'✅',title:'Strengths',text:strText,border:'border-green-500'},
+                            {icon:'⚠️',title:'Opportunities',text:oppText,border:'border-yellow-500'},
+                            {icon:'📈',title:'Potential Impact',text:impText,border:'border-blue-500'},
+                        ].map((b,i)=>(
+                            <div key={i} className={`${S2} p-6 rounded-lg shadow border-l-4 ${b.border}`}>
+                                <div className="text-2xl mb-2">{b.icon}</div>
+                                <h4 className={`font-bold ${T} mb-2`}>{b.title}</h4>
+                                <p className={`${T2} text-sm`}>{b.text}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const Competitive = () => {
+            if (loadingComp) return <div className="flex flex-col items-center py-20 space-y-4"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div><p className={T2}>Searching for nearby competitors…</p></div>;
+            if (compError)   return <div className="text-center py-16"><div className="text-4xl mb-4">⚠️</div><p className={`${T2} mb-6 text-sm`}>{compError}</p><button onClick={fetchComp} className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg">Retry</button></div>;
+            if (!competitorData) return <div className="text-center py-16"><button onClick={fetchComp} className="bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Load Competitor Analysis</button></div>;
+
+            const cards = [
+                {rank:'🏆',name:form.practiceName||'Your Practice',score:competitorData.my_score,badge:'Your Practice',mine:true},
+                ...competitorData.competitors.map(c=>({rank:String(c.rank),name:c.name,score:c.score,badge:c.badge,distance:c.distance_m?(c.distance_m/1000).toFixed(1)+' km away':'',estimated:c.method==='estimated',mine:false}))
+            ];
+
+            return (
+                <div className="space-y-8">
+                    <div className="grid md:grid-cols-4 gap-4">
+                        {cards.slice(0,4).map((c,i)=>(
+                            <div key={i} className={`p-6 rounded-lg shadow ${c.mine?(dark?'bg-blue-950 border-2 border-blue-700':'bg-blue-50 border-2 border-blue-300'):(dark?'bg-gray-700':'bg-white')}`}>
+                                <div className="text-2xl font-bold mb-2">{c.rank}</div>
+                                <h4 className={`font-bold ${T} mb-1 text-sm leading-tight`}>{c.name}</h4>
+                                {c.distance && <p className={`text-xs ${T2} mb-2`}>{c.distance}</p>}
+                                <div className="text-3xl font-bold text-blue-500 mb-2">{c.score}</div>
+                                <span className={`inline-block ${dark?'bg-blue-900 text-blue-300':'bg-blue-100 text-blue-700'} text-xs font-semibold px-3 py-1 rounded`}>{c.badge}</span>
+                                {c.estimated && <p className={`text-xs ${T2} mt-1`}>*estimated</p>}
+                            </div>
+                        ))}
+                    </div>
+                    <div className={`${dark?'bg-gray-700 border-gray-600':'bg-gray-50 border-gray-200'} border rounded-lg p-4 flex items-center justify-between`}>
+                        <span className={`${T2} font-medium`}>Industry Average Score in Your Area</span>
+                        <span className={`text-2xl font-bold ${T}`}>{competitorData.industry_avg}</span>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className={`${S2} p-6 rounded-lg shadow overflow-hidden`}>
+                            <h4 className={`font-bold ${T} mb-4`}>Competitive Positioning</h4>
+                            <div style={{position:'relative',height:'260px',width:'100%'}}>
+                                <canvas ref={barRef}></canvas>
+                            </div>
+                        </div>
+                        <div className={`${S2} p-6 rounded-lg shadow overflow-hidden`}>
+                            <h4 className={`font-bold ${T} mb-1`}>Performance Radar</h4>
+                            <div className="radar-box">
+                                <canvas ref={radarRef}></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    {competitorData.competitors.some(c=>c.method==='estimated') && <p className={`text-xs ${T2} text-center`}>* Some competitor scores are estimates where live data was unavailable.</p>}
+                </div>
+            );
+        };
+
+        const Detailed = () => (
+            <div className="space-y-6">
+                {(analysisResults.criteria||[]).map((c,i)=>(
+                    <div key={i} className={`border-l-4 border-blue-500 ${S2} p-6 rounded-lg shadow`}>
+                        <div className={`flex items-center justify-between p-3 rounded border-l-4 ${c.passed?'border-l-green-500':'border-l-red-500'}`}>
+                            <div className="flex items-center">
+                                <span className={(c.passed?'text-green-500':'text-red-500')+' mr-2'}>{c.passed?'✓':'✗'}</span>
+                                <span className={`${T2} text-sm`}>{c.text}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {c.confidence!==undefined && <span className={`text-xs ${T2}`}>{Math.round(c.confidence*100)}%</span>}
+                                <span className={`text-xs font-semibold px-2 py-1 rounded ${c.passed?(dark?'bg-green-900 text-green-300':'bg-green-100 text-green-700'):(dark?'bg-red-900 text-red-300':'bg-red-100 text-red-700')}`}>{c.points} pts</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                {(analysisResults.ai_suggestions||[]).length>0 && (
+                    <div className={`${S2} p-6 rounded-lg shadow border-l-4 border-purple-500`}>
+                        <h4 className={`text-xl font-bold ${T} mb-4`}>💡 AI Recommendations</h4>
+                        <ul className="space-y-2">
+                            {analysisResults.ai_suggestions.map((s,i)=>(
+                                <li key={i} className={`flex items-start ${T2} text-sm`}><span className="text-purple-400 mr-2 mt-0.5">→</span>{s}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        );
+
+        return (
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <h2 className={`text-4xl font-bold ${T} text-center mb-8`}>Your Online Presence Score</h2>
+                <div className={`flex gap-0 mb-8 border-b ${dark?`bg-gray-800 border-gray-700`:`bg-white border-gray-200`} rounded-t-lg`}>
+                    {[{id:'overview',label:'📊 Overview'},{id:'competitive',label:'⚡ Competitive Analysis'},{id:'detailed',label:'📋 Detailed Insights'}].map(tab=>(
+                        <button key={tab.id} onClick={()=>setActiveResultsTab(tab.id)}
+                            className={`flex-1 px-4 py-3 font-medium text-sm border-b-2 transition-colors text-center ${activeResultsTab===tab.id?'border-blue-500 text-blue-500':`border-transparent ${T2} hover:border-gray-300`}`}>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+                <div className={`${S} p-8 rounded-lg shadow-md`}>
+                    {activeResultsTab==='overview'    && <Overview/>}
+                    {activeResultsTab==='competitive' && <Competitive/>}
+                    {activeResultsTab==='detailed'    && <Detailed/>}
+                </div>
+                <div className="text-center mt-8">
+                    <button onClick={()=>{setActiveTab('diagnose');setAnalysisResults(null);setCompetitorData(null);setForm({practiceName:'',websiteUrl:'',providerName:'',zip:'',phone:'',email:'',currentSoftware:''}); }} className="bg-emerald-400 hover:bg-emerald-500 text-white px-8 py-3 rounded font-semibold">Analyze Another Website</button>
+                </div>
+            </div>
+        );
+    };
+
+    // All tabs stay mounted — only visibility toggled — so Results/Rankings never lose state
+    const show = (tab) => ({ display: activeTab === tab ? 'block' : 'none' });
+
+    return (
+        <div className={`min-h-screen ${BG}`}>
+            <header className={`${dark?'bg-gray-800 border-b border-gray-700':'bg-white shadow-sm'} sticky top-0 z-40`}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="flex items-center justify-between">
+                        <button onClick={()=>setActiveTab('home')} className="flex items-center space-x-2 cursor-pointer">
+                            <svg className="w-8 h-8 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span className={`text-2xl font-bold ${T}`}>RankPulse </span>
+                        </button>
+                        <nav className="hidden md:flex items-center space-x-6">
+                            <button onClick={()=>setActiveTab('diagnose')}   className={`${activeTab==='diagnose'  ?'text-emerald-500':T2} hover:text-emerald-500 text-sm font-medium transition-colors`}>DIAGNOSE YOUR PRACTICE</button>
+                            <button onClick={()=>setActiveTab('signIn')}     className={`${activeTab==='signIn'    ?'text-emerald-500':T2} hover:text-emerald-500 text-sm font-medium transition-colors`}>SIGN IN</button>
+                            {analysisResults && (
+                                <button onClick={()=>setActiveTab('results')} className={`${activeTab==='results'?'text-blue-400':T2} hover:text-blue-400 text-sm font-medium transition-colors`}>MY RESULTS</button>
+                            )}
+                            <button onClick={()=>setActiveTab('rankings')}   className={`${activeTab==='rankings'  ?'text-emerald-500':T2} hover:text-emerald-500 text-sm font-medium transition-colors`}>RANKINGS</button>
+                            <a href="/admin" className={`${T2} hover:text-emerald-500 text-sm font-medium transition-colors`}>ADMIN</a>
+                            <ThemeToggle dark={dark} onToggle={toggleDark}/>
+                        </nav>
+                        <div className="flex md:hidden"><ThemeToggle dark={dark} onToggle={toggleDark}/></div>
+                    </div>
+                </div>
+            </header>
+
+            <div className="min-h-screen">
+                {/* Every panel stays mounted; only CSS display toggles */}
+                <div style={show('home')}>{renderHome()}</div>
+                <div style={show('diagnose')}>{renderDiagnoseForm()}</div>
+                <div style={show('signIn')}>{renderSignIn()}</div>
+                <div style={show('results')}>{renderResults()}</div>
+                <div style={show('rankings')}>
+                    <Rankings
+                        dark={dark}
+                        analysisResults={analysisResults}
+                        formData={form}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<!-- ════════════════════════════════════════════════════════════
+     RankPulse  AI Chatbot Widget
+     ════════════════════════════════════════════════════════════ -->
+<style>
+#zh-chat-fab {
+    position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+    width: 58px; height: 58px; border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(16,185,129,.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .2s, box-shadow .2s;
+}
+#zh-chat-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(16,185,129,.55); }
+#zh-chat-fab svg   { width: 26px; height: 26px; color: #fff; }
+#zh-chat-fab::before {
+    content: ''; position: absolute; inset: -4px; border-radius: 50%;
+    border: 2px solid rgba(16,185,129,.4);
+    animation: zh-pulse 2.2s ease-out infinite;
+}
+@keyframes zh-pulse { 0%{transform:scale(1);opacity:.8} 70%{transform:scale(1.35);opacity:0} 100%{opacity:0} }
+#zh-badge {
+    position: absolute; top: -2px; right: -2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ef4444; color: #fff;
+    font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--zh-win-bg, #1a1d27);
+    opacity: 0; transform: scale(0);
+    transition: opacity .2s, transform .2s;
+}
+#zh-badge.show { opacity: 1; transform: scale(1); }
+#zh-chat-win {
+    position: fixed; bottom: 100px; right: 28px; z-index: 9998;
+    width: 380px; height: 540px;
+    border-radius: 20px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+    background: var(--zh-win-bg, #1a1d27);
+    border: 1px solid var(--zh-win-bd, rgba(255,255,255,.08));
+    transform: scale(.92) translateY(16px);
+    opacity: 0; pointer-events: none;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+}
+#zh-chat-win.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+#zh-chat-header {
+    background: linear-gradient(135deg, #059669, #0d9488);
+    padding: 16px 18px; display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+}
+.zh-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+}
+.zh-header-info { flex: 1; }
+.zh-header-name  { color: #fff; font-weight: 700; font-size: 14px; line-height: 1; }
+.zh-header-status{ color: rgba(255,255,255,.75); font-size: 11px; margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+.zh-dot { width: 7px; height: 7px; border-radius: 50%; background: #86efac; }
+#zh-close-btn {
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.15);
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff;
+    transition: background .15s;
+}
+#zh-close-btn:hover { background: rgba(255,255,255,.28); }
+#zh-messages {
+    flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    scroll-behavior: smooth;
+}
+#zh-messages::-webkit-scrollbar { width: 4px; }
+#zh-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }
+.zh-bubble-wrap { display: flex; align-items: flex-end; gap: 8px; }
+.zh-bubble-wrap.user { flex-direction: row-reverse; }
+.zh-bubble-wrap .zh-icon {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    background: rgba(255,255,255,.08);
+}
+.zh-bubble {
+    max-width: 78%; padding: 10px 14px; border-radius: 16px;
+    font-size: 13px; line-height: 1.55;
+}
+.zh-bubble.bot  {
+    background: var(--zh-bot-bg, rgba(255,255,255,.07));
+    color: var(--zh-bot-text, #e2e8f0);
+    border-bottom-left-radius: 4px;
+}
+.zh-bubble.user {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff; border-bottom-right-radius: 4px;
+}
+.zh-typing { display: flex; gap: 4px; padding: 12px 14px; align-items: center; }
+.zh-typing span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #10b981; opacity: .4;
+    animation: zh-bounce .9s ease-in-out infinite;
+}
+.zh-typing span:nth-child(2) { animation-delay: .15s; }
+.zh-typing span:nth-child(3) { animation-delay: .30s; }
+@keyframes zh-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px);opacity:1} }
+#zh-suggestions {
+    padding: 0 16px 10px; display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0;
+}
+.zh-chip {
+    padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 500;
+    background: var(--zh-chip-bg, rgba(255,255,255,.07));
+    color: var(--zh-chip-text, #94a3b8);
+    border: 1px solid var(--zh-chip-bd, rgba(255,255,255,.1));
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.zh-chip:hover { background: rgba(16,185,129,.18); color: #10b981; border-color: #10b981; }
+#zh-input-row {
+    padding: 12px 14px; display: flex; gap: 10px; align-items: flex-end;
+    border-top: 1px solid var(--zh-win-bd, rgba(255,255,255,.08));
+    flex-shrink: 0;
+}
+#zh-textarea {
+    flex: 1; resize: none; border-radius: 12px; border: 1px solid var(--zh-input-bd, rgba(255,255,255,.12));
+    background: var(--zh-input-bg, rgba(255,255,255,.06));
+    color: var(--zh-input-text, #e2e8f0);
+    padding: 9px 13px; font-size: 13px; line-height: 1.5;
+    outline: none; max-height: 100px; min-height: 40px;
+    font-family: inherit; transition: border-color .15s;
+}
+#zh-textarea::placeholder { color: var(--zh-placeholder, #64748b); }
+#zh-textarea:focus { border-color: #10b981; }
+#zh-send-btn {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    transition: opacity .15s, transform .15s; flex-shrink: 0;
+}
+#zh-send-btn:hover:not(:disabled) { transform: scale(1.08); }
+#zh-send-btn:disabled { opacity: .45; cursor: not-allowed; }
+#zh-send-btn svg { width: 16px; height: 16px; }
+[data-theme="light"] #zh-chat-win {
+    --zh-win-bg:       #ffffff;
+    --zh-win-bd:       rgba(0,0,0,.08);
+    --zh-bot-bg:       #f1f5f9;
+    --zh-bot-text:     #1e293b;
+    --zh-chip-bg:      #f1f5f9;
+    --zh-chip-text:    #475569;
+    --zh-chip-bd:      #e2e8f0;
+    --zh-input-bg:     #f8fafc;
+    --zh-input-bd:     #e2e8f0;
+    --zh-input-text:   #1e293b;
+    --zh-placeholder:  #94a3b8;
+}
+[data-theme="light"] #zh-badge { border-color: #f9fafb; }
+[data-theme="light"] .zh-icon  { background: #f1f5f9; }
+</style>
+
+<button id="zh-chat-fab" title="Chat with ZoΞ — AI Assistant">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+    </svg>
+    <span id="zh-badge">1</span>
+</button>
+
+<div id="zh-chat-win">
+    <div id="zh-chat-header">
+        <div class="zh-avatar">🤖</div>
+        <div class="zh-header-info">
+            <div class="zh-header-name">ZoΞ — RankPulse  AI</div>
+            <div class="zh-header-status"><span class="zh-dot"></span>Online • Healthcare specialist</div>
+        </div>
+        <button id="zh-close-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+    <div id="zh-messages"></div>
+    <div id="zh-suggestions">
+        <button class="zh-chip" data-q="How is my SEO score calculated?">How is SEO calculated?</button>
+        <button class="zh-chip" data-q="How can I improve my PageSpeed score?">Improve PageSpeed</button>
+        <button class="zh-chip" data-q="What does Engagement score mean?">Engagement score?</button>
+        <button class="zh-chip" data-q="Why should I add online booking to my practice?">Online booking benefits</button>
+    </div>
+    <div id="zh-input-row">
+        <textarea id="zh-textarea" rows="1" placeholder="Ask about your website score…"></textarea>
+        <button id="zh-send-btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<script>
+(function() {
+    const fab   = document.getElementById('zh-chat-fab');
+    const win   = document.getElementById('zh-chat-win');
+    const msgs  = document.getElementById('zh-messages');
+    const input = document.getElementById('zh-textarea');
+    const send  = document.getElementById('zh-send-btn');
+    const badge = document.getElementById('zh-badge');
+    const chips = document.querySelectorAll('.zh-chip');
+    let isOpen    = false;
+    let isLoading = false;
+    let history   = [];
+
+    function scrollBottom() { msgs.scrollTop = msgs.scrollHeight; }
+
+    function addBubble(role, text) {
+        const wrap = document.createElement('div');
+        wrap.className = 'zh-bubble-wrap ' + (role === 'user' ? 'user' : 'bot');
+        const icon = document.createElement('div');
+        icon.className = 'zh-icon';
+        icon.textContent = role === 'user' ? '🧑' : '🤖';
+        const bub = document.createElement('div');
+        bub.className = 'zh-bubble ' + (role === 'user' ? 'user' : 'bot');
+        bub.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`(.*?)`/g,'<code style="background:rgba(16,185,129,.15);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>');
+        if (role === 'user') { wrap.appendChild(bub); wrap.appendChild(icon); }
+        else                 { wrap.appendChild(icon); wrap.appendChild(bub); }
+        msgs.appendChild(wrap);
+        scrollBottom();
+        return bub;
+    }
+
+    function showTyping() {
+        const wrap = document.createElement('div');
+        wrap.className = 'zh-bubble-wrap bot'; wrap.id = 'zh-typing-row';
+        const icon = document.createElement('div'); icon.className = 'zh-icon'; icon.textContent = '🤖';
+        const dot  = document.createElement('div'); dot.className = 'zh-bubble bot';
+        dot.innerHTML = '<div class="zh-typing"><span></span><span></span><span></span></div>';
+        wrap.appendChild(icon); wrap.appendChild(dot);
+        msgs.appendChild(wrap); scrollBottom();
+    }
+    function hideTyping() { const t = document.getElementById('zh-typing-row'); if (t) t.remove(); }
+
+    fab.addEventListener('click', () => {
+        isOpen = !isOpen;
+        win.classList.toggle('open', isOpen);
+        badge.classList.remove('show');
+        if (isOpen && msgs.children.length === 0) greet();
+    });
+    document.getElementById('zh-close-btn').addEventListener('click', () => {
+        isOpen = false; win.classList.remove('open');
+    });
+
+    function greet() {
+        setTimeout(() => addBubble('bot', "👋 Hi there! I'm **ZoΞ**, your RankPulse  AI assistant.\n\nI can help you understand your website score, explain how each metric is calculated, and give you actionable tips to attract more patients. What would you like to know?"), 300);
+    }
+
+    setTimeout(() => { if (!isOpen) badge.classList.add('show'); }, 3000);
+
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+        send.disabled = !input.value.trim() || isLoading;
+    });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!send.disabled) doSend(); }
+    });
+    send.addEventListener('click', doSend);
+
+    chips.forEach(c => c.addEventListener('click', () => {
+        input.value = c.dataset.q;
+        input.dispatchEvent(new Event('input'));
+        doSend();
+    }));
+
+    async function doSend() {
+        const text = input.value.trim();
+        if (!text || isLoading) return;
+        input.value = ''; input.style.height = 'auto'; send.disabled = true;
+
+        addBubble('user', text);
+        history.push({ role: 'user', content: text });
+
+        isLoading = true; showTyping();
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: history.slice(-10),
+                })
+            });
+            const data = await res.json();
+            hideTyping();
+            const reply = data?.reply || 'Sorry, I had trouble answering that. Please try again.';
+            addBubble('bot', reply);
+            history.push({ role: 'assistant', content: reply });
+        } catch (err) {
+            hideTyping();
+            addBubble('bot', '⚠️ Connection error. Please check your network and try again.');
+            console.error('ZoΞ API error:', err);
+        }
+        isLoading = false;
+        send.disabled = !input.value.trim();
+    }
+})();
+</script>
+</body>
+</html>

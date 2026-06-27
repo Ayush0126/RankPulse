@@ -1,0 +1,30 @@
+# Web Framework
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-CORS==4.0.0
+python-dotenv==1.0.0
+
+# Web Crawling
+playwright==1.40.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# AI/LLM
+anthropic==0.7.1
+
+# Database
+SQLAlchemy==2.0.23
+
+# Google APIs
+googlemaps==4.10.0
+
+# Async
+aiofiles==23.2.1
+
+# Data Processing
+pandas==2.1.3
+pydantic==2.5.0
+
+# Utilities
+requests==2.31.0
+httpx==0.25.2

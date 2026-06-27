@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Online Presence Diagnostic - RankPulse </title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 900px; width: 100%; padding: 50px 40px; position: relative; }
+        .close-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 28px; cursor: pointer; color: #666; transition: color 0.3s; }
+        .close-btn:hover { color: #000; }
+        h1 { font-size: 28px; color: #2d3748; margin-bottom: 10px; text-align: center; }
+        .subtitle { font-size: 16px; color: #718096; text-align: center; margin-bottom: 40px; }
+        .form-group { margin-bottom: 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        label { display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500; }
+        .required { color: #f56565; margin-left: 2px; }
+        input, select { width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px; transition: all 0.3s; background: #f7fafc; font-family: inherit; }
+        input:focus, select:focus { outline: none; border-color: #667eea; background: white; }
+        input::placeholder { color: #a0aec0; }
+        select option { color: #2d3748; background: white; }
+        .submit-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(102,126,234,0.4); }
+        .submit-btn:active { transform: translateY(0); }
+        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .otp-container { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .otp-container.show { display: flex; }
+        .otp-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; }
+        .otp-card h2 { font-size: 28px; color: #2d3748; margin-bottom: 10px; }
+        .otp-subtitle { font-size: 14px; color: #718096; margin-bottom: 30px; line-height: 1.6; }
+        .otp-input-group { margin-bottom: 30px; text-align: left; }
+        .otp-input-group label { display: block; font-size: 14px; font-weight: 600; color: #2d3748; margin-bottom: 10px; }
+        .otp-input { width: 100%; padding: 14px 16px; font-size: 24px; letter-spacing: 10px; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; transition: all 0.3s; font-weight: 600; font-family: 'Courier New', monospace; }
+        .otp-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .otp-hint { font-size: 12px; color: #a0aec0; margin-top: 8px; }
+        .otp-footer { margin-top: 25px; padding-top: 25px; border-top: 1px solid #e2e8f0; }
+        .otp-footer p { font-size: 13px; color: #718096; margin-bottom: 10px; }
+        .resend-btn, .back-btn { background: none; border: none; color: #667eea; font-weight: 600; cursor: pointer; text-decoration: none; padding: 0; transition: all 0.3s; }
+        .resend-btn:hover, .back-btn:hover { color: #764ba2; text-decoration: underline; }
+        .error-message { padding: 12px; background: #fef2f2; color: #c53030; border-left: 4px solid #f56565; border-radius: 4px; font-size: 13px; margin-top: 15px; text-align: left; display: none; }
+        .success-message { padding: 12px; background: #f0fdf4; color: #22543d; border-left: 4px solid #48bb78; border-radius: 4px; font-size: 13px; margin-top: 15px; text-align: left; display: none; }
+        .loading { display: none; text-align: center; padding: 40px; }
+        .spinner { border: 4px solid #f3f4f6; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        .results { display: none; }
+        .results-tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; flex-wrap: wrap; }
+        .results-tab { padding: 15px 25px; background: none; border: none; border-bottom: 3px solid transparent; color: #718096; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .results-tab:hover { color: #667eea; }
+        .results-tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .tab-header { color: #667eea; font-size: 16px; font-weight: 600; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .score-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .score-card { background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 20px; border-radius: 12px; text-align: center; border: 2px solid #e2e8f0; transition: all 0.3s; }
+        .score-card:hover { box-shadow: 0 8px 20px rgba(102,126,234,0.1); border-color: #667eea; }
+        .score-card.excellent { background: linear-gradient(135deg,#f0fdf4,#e0f5e9); border-color: #48bb78; }
+        .score-card.good { background: linear-gradient(135deg,#fffbeb,#fef3c7); border-color: #f6ad55; }
+        .score-card.fair { background: linear-gradient(135deg,#fef2f2,#fee2e2); border-color: #f56565; }
+        .score-label { font-size: 12px; color: #718096; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .score-number { font-size: 32px; font-weight: bold; background: linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .score-card.excellent .score-number { background: linear-gradient(135deg,#48bb78,#38a169); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .chart-container { position: relative; height: 300px; margin: 30px 0; padding: 20px; background: #f7fafc; border-radius: 12px; }
+        .chart-title { font-size: 16px; font-weight: 600; color: #2d3748; margin-bottom: 15px; }
+        .radar-container { position: relative; height: 350px; margin: 30px 0; padding: 20px; background: #f7fafc; border-radius: 12px; }
+        .competitor-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin: 30px 0; }
+        .competitor-card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; transition: all 0.3s; }
+        .competitor-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-color: #667eea; }
+        .competitor-card.mine { background: #f0f4ff; border-color: #667eea; }
+        .competitor-rank { background: linear-gradient(135deg,#667eea,#764ba2); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
+        .competitor-name { font-size: 13px; font-weight: 600; color: #2d3748; margin-bottom: 4px; line-height: 1.3; }
+        .competitor-distance { font-size: 11px; color: #a0aec0; margin-bottom: 8px; }
+        .competitor-score { font-size: 28px; font-weight: bold; color: #667eea; margin-bottom: 8px; }
+        .competitor-badge { display: inline-block; background: #f0f4ff; color: #667eea; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .competitor-estimated { font-size: 10px; color: #a0aec0; margin-top: 4px; }
+        .industry-avg-banner { display: flex; align-items: center; justify-content: space-between; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin: 20px 0; }
+        .industry-avg-label { font-weight: 600; color: #4a5568; font-size: 14px; }
+        .industry-avg-score { font-size: 28px; font-weight: bold; color: #2d3748; }
+        .competitor-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; }
+        .competitor-loading p { color: #718096; font-size: 14px; }
+        .competitor-loading small { color: #a0aec0; font-size: 12px; }
+        .competitor-error { text-align: center; padding: 40px 20px; }
+        .competitor-error .error-icon { font-size: 40px; margin-bottom: 12px; }
+        .competitor-error h4 { color: #2d3748; font-size: 16px; margin-bottom: 8px; }
+        .competitor-error p { color: #718096; font-size: 13px; margin-bottom: 16px; }
+        .retry-btn { background: #667eea; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .retry-btn:hover { background: #5a6fd6; }
+        .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 20px; margin: 30px 0; }
+        .insight-box { background: linear-gradient(135deg,#f0f4ff,#f5f7ff); border-left: 4px solid #667eea; padding: 20px; border-radius: 8px; }
+        .insight-icon { font-size: 28px; margin-bottom: 10px; }
+        .insight-title { font-size: 14px; font-weight: 600; color: #2d3748; margin-bottom: 8px; }
+        .insight-text { font-size: 12px; color: #718096; }
+        .ai-summary { background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #3730a3; line-height: 1.5; }
+        .ai-summary strong { font-weight: 700; }
+        .paywall-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
+        .paywall-overlay.show { display: flex; }
+        .paywall-modal { background: white; border-radius: 16px; max-width: 500px; width: 90%; padding: 40px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+        .paywall-icon { font-size: 48px; margin-bottom: 20px; }
+        .paywall-modal h2 { font-size: 28px; color: #2d3748; margin-bottom: 15px; font-weight: 700; }
+        .paywall-modal p { color: #718096; font-size: 15px; margin-bottom: 20px; line-height: 1.6; }
+        .paywall-features { text-align: left; background: #f7fafc; padding: 20px; border-radius: 8px; margin: 25px 0; font-size: 14px; }
+        .paywall-features li { color: #4a5568; margin-bottom: 10px; display: flex; align-items: center; }
+        .paywall-features li:before { content:"✓"; color:#48bb78; font-weight: bold; margin-right: 10px; font-size: 16px; }
+        .paywall-price { font-size: 48px; font-weight: bold; color: #667eea; margin: 25px 0 10px; }
+        .paywall-price span { font-size: 20px; color: #718096; }
+        .paywall-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px; }
+        .paywall-btn-primary { background: linear-gradient(135deg,#667eea,#764ba2); color: white; padding: 14px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .paywall-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(102,126,234,0.4); }
+        .paywall-btn-secondary { background: white; color: #667eea; padding: 14px 24px; border: 2px solid #667eea; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .paywall-btn-secondary:hover { background: #f7fafc; }
+        .analysis-section { margin: 25px 0; border-left: 5px solid #667eea; padding: 20px; background: #f7fafc; border-radius: 8px; position: relative; }
+        .analysis-section.locked { opacity: 0.6; pointer-events: none; }
+        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); border-radius: 8px; display: none; justify-content: center; align-items: center; flex-direction: column; gap: 10px; }
+        .analysis-section.locked .lock-overlay { display: flex; }
+        .lock-icon { font-size: 32px; }
+        .lock-text { font-size: 13px; color: #718096; font-weight: 600; }
+        .section-title { font-size: 18px; color: #2d3748; margin: 0 0 8px 0; font-weight: 700; display: flex; align-items: center; }
+        .section-icon { margin-right: 10px; font-size: 24px; }
+        .detailed-criteria-list { list-style: none; padding: 0; margin: 0; }
+        .detailed-criteria-item { display: flex; align-items: center; padding: 12px 15px; margin-bottom: 8px; background: white; border-radius: 6px; border-left: 4px solid #cbd5e0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .detailed-criteria-item.pass { border-left-color: #48bb78; }
+        .detailed-criteria-item.fail { border-left-color: #f56565; }
+        .detailed-criteria-item.pass .criteria-icon { color: #48bb78; }
+        .detailed-criteria-item.fail .criteria-icon { color: #f56565; }
+        .criteria-icon { width: 20px; height: 20px; margin-right: 10px; flex-shrink: 0; }
+        .detailed-criteria-item .criteria-text { font-size: 13px; margin-right: 10px; flex: 1; }
+        .criteria-confidence { font-size: 11px; color: #a0aec0; margin-right: 8px; }
+        .criteria-points { margin-left: auto; font-weight: 600; color: #667eea; font-size: 12px; padding: 4px 8px; background: #f0f4ff; border-radius: 4px; white-space: nowrap; }
+        .detailed-criteria-item.pass .criteria-points { background: #f0fdf4; color: #48bb78; }
+        .detailed-criteria-item.fail .criteria-points { background: #fef2f2; color: #f56565; }
+        .ai-suggestions { margin-top: 20px; }
+        .ai-suggestions h4 { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 12px; }
+        .suggestion-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: white; border-radius: 6px; margin-bottom: 8px; font-size: 13px; color: #4a5568; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .suggestion-item::before { content: "→"; color: #764ba2; font-weight: bold; flex-shrink: 0; margin-top: 1px; }
+        .cta-section { margin-top: 30px; padding: 25px; background: linear-gradient(135deg,#667eea,#764ba2); border-radius: 12px; text-align: center; color: white; }
+        .cta-section h3 { margin-bottom: 10px; }
+        .cta-btn { background: white; color: #667eea; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 15px; transition: transform 0.2s; }
+        .cta-btn:hover { transform: scale(1.05); }
+        .disclaimer-text { font-size: 11px; color: #a0aec0; text-align: center; margin-top: 12px; }
+        @media (max-width: 600px) { .container { padding: 30px 25px; } .form-row { grid-template-columns: 1fr; } h1 { font-size: 22px; } .results-tabs { flex-direction: column; gap: 5px; } .results-tab { border-bottom: none; border-left: 3px solid transparent; padding: 12px 15px; text-align: left; } .results-tab.active { border-bottom: none; border-left: 3px solid #667eea; } .paywall-buttons { grid-template-columns: 1fr; } .score-cards { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="close-btn" onclick="window.close()">&times;</button>
+
+        <!-- Form -->
+        <div id="formSection">
+            <h1>See how your practice appears online,</h1>
+            <p class="subtitle">instantly and for free.</p>
+            <form id="diagnosticForm">
+                <div class="form-group">
+                    <label for="practiceName">Practice Name <span class="required">*</span></label>
+                    <input type="text" id="practiceName" placeholder="Vibrant Health &amp; Wellness Center" required>
+                </div>
+                <div class="form-group">
+                    <label for="websiteUrl">Practice Website <span class="required">*</span></label>
+                    <input type="url" id="websiteUrl" placeholder="https://www.yourpractice.com" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">Provider Name <span class="required">*</span></label>
+                        <input type="text" id="firstName" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="zip">Practice ZIP Code <span class="required">*</span></label>
+                        <input type="text" id="zip" placeholder="12345" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone">Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" placeholder="(555) 123-4567" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Practice Email ID <span class="required">*</span></label>
+                        <input type="email" id="email" placeholder="john@example.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="currentSoftware">Current Software <span class="required">*</span></label>
+                    <select id="currentSoftware" required>
+                        <option value="" disabled selected>Select your practice management software</option>
+                        <option value="jane-app">Jane App</option>
+                        <option value="chirotouch">ChiroTouch</option>
+                        <option value="chirospring">ChiroSpring</option>
+                        <option value="reviewwave">ReviewWave</option>
+                        <option value="chirofusion">ChiroFusion</option>
+                        <option value="chirohd">ChiroHD</option>
+                        <option value="eclipse-ehr">Eclipse EHR</option>
+                        <option value="genesis-clinic-mind">Genesis Chiropractic Software/Clinic Mind</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">DIAGNOSE INSTANTLY</button>
+            </form>
+        </div>
+
+        <!-- OTP -->
+        <div id="otpSection" class="otp-container">
+            <div class="otp-card">
+                <h2>Verify Your Phone Number</h2>
+                <p class="otp-subtitle">We've sent a verification code to <strong id="displayPhone"></strong></p>
+                <div class="otp-input-group">
+                    <label for="otpCode">Enter Verification Code <span class="required">*</span></label>
+                    <input type="text" id="otpCode" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" class="otp-input">
+                    <p class="otp-hint">6-digit code sent to your phone</p>
+                </div>
+                <button type="button" class="submit-btn" onclick="verifyOTP(event)">VERIFY CODE</button>
+                <div class="otp-footer">
+                    <p>Didn't receive the code? <button type="button" class="resend-btn" onclick="resendOTP(event)">Resend OTP</button></p>
+                    <p><button type="button" class="back-btn" onclick="backToForm()">Back to Form</button></p>
+                </div>
+                <div id="otpError" class="error-message"></div>
+                <div id="otpSuccess" class="success-message"></div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingSection" class="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Analyzing your website...</p>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsSection" class="results">
+            <h1 id="resultsTitle">Your Online Presence Score</h1>
+
+            <div class="results-tabs">
+                <button class="results-tab active" onclick="switchTab('dashboard', this)">📊 Overview</button>
+                <button class="results-tab" onclick="switchTab('competitive', this)">⚡ Competitive Analysis</button>
+                <button class="results-tab" onclick="switchTab('detailed', this)">📋 Detailed Insights</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="dashboard" class="tab-content active">
+                <div class="tab-header">Performance Overview</div>
+
+                <div style="text-align:center;margin-bottom:20px;">
+                    <div id="overallScoreBadge" style="display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-size:28px;font-weight:bold;box-shadow:0 4px 20px rgba(102,126,234,0.4);">&#x2014;</div>
+                    <p style="color:#718096;font-size:13px;margin-top:8px;">Overall Score</p>
+                </div>
+
+                <div class="score-cards">
+                    <div class="score-card excellent">
+                        <div class="score-label">Desktop</div>
+                        <div class="score-number" id="desktopScore">&#x2014;</div>
+                    </div>
+                    <div class="score-card good">
+                        <div class="score-label">Mobile</div>
+                        <div class="score-number" id="mobileScore">&#x2014;</div>
+                    </div>
+                    <div class="score-card excellent">
+                        <div class="score-label">SEO</div>
+                        <div class="score-number" id="seoScore">&#x2014;</div>
+                    </div>
+                    <div class="score-card fair">
+                        <div class="score-label">Engagement</div>
+                        <div class="score-number" id="engagementScore">&#x2014;</div>
+                    </div>
+                </div>
+
+                <div id="aiSummaryBox" class="ai-summary" style="display:none;"></div>
+
+                <div class="radar-container">
+                    <div class="chart-title">Performance Radar</div>
+                    <canvas id="radarChart"></canvas>
+                </div>
+
+                <!-- PATCHED: IDs added, text cleared — populated dynamically from API -->
+                <div class="insights-grid">
+                    <div class="insight-box">
+                        <div class="insight-icon">&#x2705;</div>
+                        <div class="insight-title">Strengths</div>
+                        <div class="insight-text" id="strengthsText">&#x2014;</div>
+                    </div>
+                    <div class="insight-box">
+                        <div class="insight-icon">&#x26A0;&#xFE0F;</div>
+                        <div class="insight-title">Opportunities</div>
+                        <div class="insight-text" id="opportunitiesText">&#x2014;</div>
+                    </div>
+                    <div class="insight-box">
+                        <div class="insight-icon">&#x1F4C8;</div>
+                        <div class="insight-title">Potential Impact</div>
+                        <div class="insight-text" id="potentialImpactText">&#x2014;</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Competitive Tab -->
+            <div id="competitive" class="tab-content">
+                <div class="tab-header">How You Stack Up</div>
+                <div id="competitiveContent"></div>
+            </div>
+
+            <!-- Detailed Tab -->
+            <div id="detailed" class="tab-content">
+                <div class="tab-header">Detailed Analysis</div>
+                <div id="detailedContent"></div>
+            </div>
+
+            <div class="cta-section">
+                <h3>Ready to improve your online presence?</h3>
+                <p>Get detailed insights and actionable recommendations with Premium access.</p>
+                <button class="cta-btn" onclick="showPaywall()">Unlock Premium - $90/month</button>
+            </div>
+
+            <div style="text-align:center;margin-top:20px;">
+                <button class="submit-btn" onclick="resetForm()" style="max-width:300px;margin:0 auto;">Analyze Another Website</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paywall -->
+    <div id="paywallOverlay" class="paywall-overlay">
+        <div class="paywall-modal">
+            <div class="paywall-icon">&#x1F680;</div>
+            <h2>Upgrade to Premium</h2>
+            <p>Unlock detailed analysis, actionable recommendations, and competitive insights to grow your practice online.</p>
+            <ul class="paywall-features">
+                <li>Complete website audit report</li>
+                <li>Competitive analysis &amp; benchmarking</li>
+                <li>Patient engagement strategies</li>
+                <li>SEO optimization roadmap</li>
+                <li>Priority email support</li>
+                <li>Monthly performance reports</li>
+            </ul>
+            <div class="paywall-price">$90 <span>/month</span></div>
+            <div class="paywall-buttons">
+                <button class="paywall-btn-primary" onclick="processPremium()">Upgrade Now</button>
+                <button class="paywall-btn-secondary" onclick="closePaywall()">Not Now</button>
+            </div>
+            <p style="margin-top:15px;font-size:12px;color:#a0aec0;">Secure payment &bull; 30-day money-back guarantee</p>
+        </div>
+    </div>
+
+    <script>
+        // ── State ──────────────────────────────────────────────────
+        var currentFormData = {};
+        var analysisResults = null;
+        var competitorData  = null;
+        var isPremium       = false;
+        var radarChart, competitiveChart;
+        var competitorFetched = false;
+
+        var PASS_SVG = '<svg class="criteria-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>';
+        var FAIL_SVG = '<svg class="criteria-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>';
+
+        // ── Form submit ───────────────────────────────────────────
+        document.getElementById('diagnosticForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentFormData = {
+                practiceName:    document.getElementById('practiceName').value,
+                websiteUrl:      document.getElementById('websiteUrl').value,
+                providerName:    document.getElementById('firstName').value,
+                zip:             document.getElementById('zip').value,
+                phone:           document.getElementById('phone').value,
+                email:           document.getElementById('email').value,
+                currentSoftware: document.getElementById('currentSoftware').value,
+            };
+            showOTPVerification(currentFormData.phone);
+        });
+
+        // ── OTP ───────────────────────────────────────────────────
+        function showOTPVerification(phone) {
+            document.getElementById('formSection').style.display = 'none';
+            document.getElementById('otpSection').classList.add('show');
+            document.getElementById('displayPhone').textContent = maskPhone(phone);
+            requestOTP(phone);
+        }
+
+        function maskPhone(phone) {
+            return phone.replace(/(\d{3})\D*(\d{3})\D*(\d{4})/, '($1) $2-****');
+        }
+
+        async function requestOTP(phone) {
+            try {
+                var res  = await fetch('/api/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
+                var data = await res.json();
+                if (!data.success) showOTPError('Failed to send OTP. Please check your phone number.');
+            } catch(e) { console.error('OTP request error:', e); }
+        }
+
+        async function verifyOTP(e) {
+            var btn     = e.target;
+            var otpCode = document.getElementById('otpCode').value;
+            var phone   = currentFormData.phone;
+            if (!otpCode || otpCode.length !== 6) { showOTPError('Please enter a valid 6-digit code'); return; }
+            var orig = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Verifying...';
+            try {
+                var res  = await fetch('/api/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp: otpCode }) });
+                var data = await res.json();
+                if (data.success) { showOTPSuccess('Phone verified! Starting analysis...'); setTimeout(function(){ startAnalysis(); }, 1000); }
+                else { showOTPError(data.message || 'Invalid OTP. Please try again.'); btn.disabled = false; btn.textContent = orig; }
+            } catch(err) { showOTPError('Error verifying code. Please try again.'); btn.disabled = false; btn.textContent = orig; }
+        }
+
+        async function resendOTP(e) {
+            var btn = e.target; var orig = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Sending...';
+            try {
+                var res  = await fetch('/api/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentFormData.phone }) });
+                var data = await res.json();
+                if (data.success) showOTPSuccess('New code sent to your phone!');
+                else showOTPError('Failed to resend OTP.');
+            } catch(err) { showOTPError('Error resending OTP.'); }
+            finally { setTimeout(function(){ btn.disabled = false; btn.textContent = orig; }, 3000); }
+        }
+
+        function backToForm() {
+            document.getElementById('otpSection').classList.remove('show');
+            document.getElementById('formSection').style.display = 'block';
+            document.getElementById('otpCode').value = '';
+            document.getElementById('otpError').style.display   = 'none';
+            document.getElementById('otpSuccess').style.display = 'none';
+        }
+
+        function showOTPError(msg) {
+            var el = document.getElementById('otpError'); el.textContent = msg; el.style.display = 'block';
+            document.getElementById('otpSuccess').style.display = 'none';
+        }
+        function showOTPSuccess(msg) {
+            var el = document.getElementById('otpSuccess'); el.textContent = msg; el.style.display = 'block';
+            document.getElementById('otpError').style.display = 'none';
+        }
+
+        // ── Analysis ──────────────────────────────────────────────
+        async function startAnalysis() {
+            document.getElementById('otpSection').classList.remove('show');
+            document.getElementById('loadingSection').style.display = 'block';
+            competitorFetched = false; competitorData = null;
+            try {
+                var res  = await fetch('/api/analyze-website', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentFormData) });
+                var data = await res.json();
+                if (data.analysis_id) pollForResults(data.analysis_id);
+                else throw new Error('No analysis ID');
+            } catch(err) {
+                console.error('Analysis start error:', err);
+                document.getElementById('loadingSection').style.display = 'none';
+                displayResults({ score: 70, criteria: [], pagespeed: {} });
+            }
+        }
+
+        async function pollForResults(analysisId) {
+            var maxAttempts = 120; var attempts = 0;
+            var check = async function() {
+                try {
+                    attempts++;
+                    var res  = await fetch('/api/analysis-status/' + analysisId);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    var data = await res.json();
+                    if (data.status === 'complete' && data.results) {
+                        document.getElementById('loadingSection').style.display = 'none';
+                        displayResults(data.results);
+                    } else if (data.status === 'error') {
+                        throw new Error(data.error || 'Analysis failed');
+                    } else if (attempts < maxAttempts) {
+                        var dots = '.'.repeat((attempts % 3) + 1);
+                        document.getElementById('loadingText').textContent = 'Analyzing website' + dots + ' (' + attempts + 's)';
+                        setTimeout(check, 1000);
+                    } else { throw new Error('Analysis timed out'); }
+                } catch(err) {
+                    console.error('Poll error:', err);
+                    document.getElementById('loadingSection').style.display = 'none';
+                    displayResults({ score: 70, criteria: [], pagespeed: {} });
+                }
+            };
+            check();
+        }
+
+        // ── Display results ───────────────────────────────────────
+        function displayResults(results) {
+            analysisResults = results;
+            var score = results.score || 0;
+            var ps    = results.pagespeed || {};
+
+            // Use real computed scores from API where available, fall back to estimates
+            var desktop    = Math.min(100, (ps.desktop && ps.desktop.score)  || Math.round(score * 1.02));
+            var mobile     = Math.min(100, (ps.mobile  && ps.mobile.score)   || Math.round(score * 0.92));
+            var seo        = results.seo_score        !== undefined ? results.seo_score        : Math.min(100, Math.round(score * 1.05));
+            var engagement = results.engagement_score !== undefined ? results.engagement_score : Math.min(100, Math.round(score * 0.78));
+
+            document.getElementById('overallScoreBadge').textContent = score;
+
+            animateScore('desktop',    desktop);
+            animateScore('mobile',     mobile);
+            animateScore('seo',        seo);
+            animateScore('engagement', engagement);
+
+            // ── PATCHED: Dynamic insights populated from API criteria + ai_suggestions ──
+            (function() {
+                var passed      = (results.criteria || []).filter(function(c) { return c.passed; });
+                var failed      = (results.criteria || []).filter(function(c) { return !c.passed; });
+                var suggestions = results.ai_suggestions || [];
+
+                var strengthsEl     = document.getElementById('strengthsText');
+                var opportunitiesEl = document.getElementById('opportunitiesText');
+                var potentialEl     = document.getElementById('potentialImpactText');
+
+                if (strengthsEl) {
+                    strengthsEl.textContent = passed.length > 0
+                        ? passed.slice(0, 2).map(function(c) { return c.text; }).join(' and ')
+                        : 'Solid online foundation';
+                }
+                if (opportunitiesEl) {
+                    opportunitiesEl.textContent = suggestions.length > 0
+                        ? suggestions[0]
+                        : failed.length > 0
+                            ? failed.slice(0, 2).map(function(c) { return c.text; }).join(' and ')
+                            : 'Continue maintaining current standards';
+                }
+                if (potentialEl) {
+                    var pts = failed.reduce(function(s, c) { return s + (c.points || 0); }, 0);
+                    potentialEl.textContent = pts > 0
+                        ? '+' + Math.round(pts * 1.5) + '% more patient inquiries possible'
+                        : 'Maintain your strong online presence';
+                }
+            })();
+
+            // AI summary
+            if (results.ai_summary) {
+                var box = document.getElementById('aiSummaryBox');
+                box.innerHTML = '<strong>AI Insight:</strong> ' + results.ai_summary;
+                box.style.display = 'block';
+            }
+
+            buildDetailedTab(results);
+
+            setTimeout(function() {
+                if (radarChart) { radarChart.destroy(); radarChart = null; }
+                initRadarChart(desktop, mobile, seo, engagement, score);
+            }, 300);
+
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function animateScore(id, target) {
+            var el = document.getElementById(id + 'Score');
+            if (!el) return;
+            var cur = 0; var inc = target / 30;
+            var iv = setInterval(function() {
+                cur += inc;
+                if (cur >= target) { cur = target; clearInterval(iv); }
+                el.textContent = Math.round(cur);
+            }, 20);
+        }
+
+        // ── Radar chart ───────────────────────────────────────────
+        function initRadarChart(desktop, mobile, seo, engagement, overall) {
+            var ctx = document.getElementById('radarChart');
+            if (!ctx || radarChart) return;
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Desktop', 'Mobile', 'SEO', 'Engagement', 'Performance'],
+                    datasets: [
+                        { label: 'Your Practice', data: [desktop, mobile, seo, engagement, overall], borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', borderWidth: 2, pointBackgroundColor: '#667eea', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5 },
+                        { label: 'Industry Average', data: [65, 60, 70, 60, 65], borderColor: '#cbd5e0', backgroundColor: 'rgba(203,213,224,0.05)', borderWidth: 2, pointBackgroundColor: '#cbd5e0', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } } }
+            });
+        }
+
+        // ── Competitive tab ───────────────────────────────────────
+        function renderCompetitiveLoading() {
+            document.getElementById('competitiveContent').innerHTML = '<div class="competitor-loading"><div class="spinner"></div><p>Searching for nearby competitors in your area\u2026</p><small>This may take a few seconds</small></div>';
+        }
+
+        function renderCompetitiveError(msg) {
+            document.getElementById('competitiveContent').innerHTML = '<div class="competitor-error"><div class="error-icon">\u26A0\uFE0F</div><h4>Could not load competitor data</h4><p>' + msg + '</p><button class="retry-btn" onclick="loadCompetitors()">Retry</button></div>';
+        }
+
+        function renderCompetitiveData(data) {
+            var myName = currentFormData.practiceName || 'Your Practice';
+            var allCards = [{ rank: '\uD83C\uDFC6', name: myName, score: data.my_score, badge: 'Your Practice', distance: '', mine: true }].concat(
+                data.competitors.map(function(c, i) { return { rank: String(c.rank), name: c.name, score: c.score, badge: c.badge, distance: c.distance_m ? (c.distance_m/1000).toFixed(1) + ' km away' : '', estimated: c.method === 'estimated', mine: false }; })
+            );
+
+            var cardsHTML = allCards.slice(0, 4).map(function(c) {
+                return '<div class="competitor-card ' + (c.mine ? 'mine' : '') + '">' +
+                    '<div class="competitor-rank">' + c.rank + '</div>' +
+                    '<div class="competitor-name">' + c.name + '</div>' +
+                    (c.distance ? '<div class="competitor-distance">' + c.distance + '</div>' : '') +
+                    '<div class="competitor-score">' + c.score + '</div>' +
+                    '<span class="competitor-badge">' + c.badge + '</span>' +
+                    (c.estimated ? '<div class="competitor-estimated">*estimated</div>' : '') +
+                    '</div>';
+            }).join('');
+
+            var hasEstimates = data.competitors.some(function(c) { return c.method === 'estimated'; });
+
+            document.getElementById('competitiveContent').innerHTML =
+                '<div class="competitor-cards">' + cardsHTML + '</div>' +
+                '<div class="industry-avg-banner"><span class="industry-avg-label">Industry Average Score in Your Area</span><span class="industry-avg-score">' + data.industry_avg + '</span></div>' +
+                '<div class="chart-container"><div class="chart-title">Competitive Positioning</div><canvas id="competitiveChart"></canvas></div>' +
+                (hasEstimates ? '<p class="disclaimer-text">* Some competitor scores are estimates where live website data was unavailable.</p>' : '');
+
+            if (competitiveChart) { competitiveChart.destroy(); competitiveChart = null; }
+            var labels = [myName.length > 16 ? myName.slice(0,16) + '\u2026' : myName].concat(data.competitors.map(function(c) { return c.name.length > 18 ? c.name.slice(0,18) + '\u2026' : c.name; }));
+            var scores = [data.my_score].concat(data.competitors.map(function(c) { return c.score; }));
+            var colors = scores.map(function(_, i) { return i === 0 ? '#667eea' : '#cbd5e0'; });
+
+            var ctx = document.getElementById('competitiveChart');
+            if (ctx) {
+                competitiveChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [{ label: 'Overall Score', data: scores, backgroundColor: colors, borderColor: colors, borderWidth: 2, borderRadius: 8 }] },
+                    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 100 } } }
+                });
+            }
+        }
+
+        async function loadCompetitors() {
+            if (!analysisResults) return;
+            renderCompetitiveLoading();
+            try {
+                var res = await fetch('/api/competitors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ zip: currentFormData.zip, currentSoftware: currentFormData.currentSoftware, websiteUrl: currentFormData.websiteUrl, myScore: analysisResults.score, radius: 5000, maxCompetitors: 3 }) });
+                var data = await res.json();
+                if (data.error) renderCompetitiveError(data.error);
+                else { competitorData = data; competitorFetched = true; renderCompetitiveData(data); }
+            } catch(err) { renderCompetitiveError('Could not load competitor data. Make sure the backend is running.'); }
+        }
+
+        // ── Detailed tab ──────────────────────────────────────────
+        function buildDetailedTab(results) {
+            var criteria    = results.criteria || [];
+            var suggestions = results.ai_suggestions || [];
+            var sections = [
+                { id: 'websiteHealth', title: 'Website Health', icon: '\uD83C\uDF10', keys: ['Mobile-responsive website','SSL certificate (HTTPS)','Patient forms available'] },
+                { id: 'digitalReach',  title: 'Practice Digital Reach', icon: '\uD83D\uDCF1', keys: ['Active social media presence','Google My Business listing','Patient testimonials/reviews'] },
+                { id: 'patientExp',    title: 'Patient Experience', icon: '\uD83D\uDC65', keys: ['Online appointment booking','Digital patient intake (online)','Modern check-in system','Educational content/blog','Video content about services','Contact information clearly visible'] },
+            ];
+
+            var criteriaMap = {};
+            criteria.forEach(function(c) { criteriaMap[c.text] = c; });
+
+            var sectionsHTML = '';
+            sections.forEach(function(sec) {
+                var itemsHTML = sec.keys.map(function(key) {
+                    var c = criteriaMap[key];
+                    if (!c) return '';
+                    var cls  = c.passed ? 'pass' : 'fail';
+                    var icon = c.passed ? PASS_SVG : FAIL_SVG;
+                    var conf = c.confidence !== undefined ? '<span class="criteria-confidence">' + Math.round(c.confidence*100) + '%</span>' : '';
+                    return '<li class="detailed-criteria-item ' + cls + '">' + icon + '<span class="criteria-text">' + c.text + '</span>' + conf + '<span class="criteria-points">' + c.points + ' pts</span></li>';
+                }).join('');
+
+                sectionsHTML += '<div class="analysis-section locked" id="section_' + sec.id + '"><div class="lock-overlay"><div class="lock-icon">\uD83D\uDD12</div><div class="lock-text">Unlock Premium for Details</div></div><h4 class="section-title"><span class="section-icon">' + sec.icon + '</span>' + sec.title + '</h4><ul class="detailed-criteria-list">' + (itemsHTML || '<li class="detailed-criteria-item"><span class="criteria-text">No data available</span></li>') + '</ul></div>';
+            });
+
+            if (suggestions.length) {
+                var suggHTML = suggestions.map(function(s) { return '<div class="suggestion-item">' + s + '</div>'; }).join('');
+                sectionsHTML += '<div class="analysis-section locked" id="section_suggestions"><div class="lock-overlay"><div class="lock-icon">\uD83D\uDD12</div><div class="lock-text">Unlock Premium for Details</div></div><h4 class="section-title"><span class="section-icon">\uD83D\uDCA1</span>AI Recommendations</h4><div class="ai-suggestions">' + suggHTML + '</div></div>';
+            }
+
+            document.getElementById('detailedContent').innerHTML = sectionsHTML || '<p style="color:#718096;padding:20px 0;">Run an analysis first to see detailed criteria.</p>';
+        }
+
+        // ── Tab switching ─────────────────────────────────────────
+        function switchTab(tabName, btn) {
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.results-tab').forEach(function(b) { b.classList.remove('active'); });
+            var tab = document.getElementById(tabName);
+            if (tab) tab.classList.add('active');
+            if (btn) btn.classList.add('active');
+            if (tabName === 'competitive' && !competitorFetched && analysisResults) loadCompetitors();
+        }
+
+        // ── Premium / paywall ─────────────────────────────────────
+        function showPaywall() { document.getElementById('paywallOverlay').classList.add('show'); }
+        function closePaywall() { document.getElementById('paywallOverlay').classList.remove('show'); }
+        function processPremium() {
+            isPremium = true;
+            document.querySelectorAll('.analysis-section.locked').forEach(function(s) { s.classList.remove('locked'); });
+            closePaywall();
+            alert('\uD83C\uDF89 Premium features are now unlocked!');
+        }
+        document.getElementById('paywallOverlay').addEventListener('click', function(e) { if (e.target === document.getElementById('paywallOverlay')) closePaywall(); });
+
+        // ── Reset ─────────────────────────────────────────────────
+        function resetForm() {
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('formSection').style.display = 'block';
+            document.getElementById('diagnosticForm').reset();
+            document.getElementById('otpCode').value = '';
+            if (radarChart)       { radarChart.destroy();       radarChart       = null; }
+            if (competitiveChart) { competitiveChart.destroy(); competitiveChart = null; }
+            analysisResults = null; competitorData = null; competitorFetched = false; isPremium = false;
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.results-tab').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('dashboard').classList.add('active');
+            document.querySelector('.results-tab').classList.add('active');
+        }
+    </script>
+</body>
+</html>
